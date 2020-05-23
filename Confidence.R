@@ -201,20 +201,17 @@ print(sprintf("Confidence: %.2f", ((nrow(confMatchingControl) + nrow(confNonMatc
 # however, we can't do
 
 
-exRoute <- GenericQuery("SELECT STUDYID, USUBJID, EXROUTE FROM EX")
-dmAnimals <- GenericQuery("SELECT STUDYID, USUBJID FROM DM")
+exRoute <- GenericQuery("SELECT DISTINCT STUDYID, USUBJID, EXROUTE FROM EX")
 tsRoute <- data.table(GenericQuery('SELECT STUDYID, TSPARMCD, TSVAL FROM TS WHERE TSPARMCD = "ROUTE"'))
 
 # about 4 studies in EX have empty strings for USUBJID
 # so we need to eliminate these
 exRoute <- exRoute[exRoute$USUBJID != "",]
 
-mergedDmEx <- merge(dmAnimals, unique(exRoute), all=TRUE)
-
-nRecords <- nrow(unique(mergedDmEx[,c('STUDYID', 'USUBJID')]))
+nRecords <- nrow(unique(exRoute[,c('STUDYID', 'USUBJID')]))
 
 tsRoute <- tsRoute[,.(STUDYID, EXROUTE=toupper(TSVAL))]
-mergedDmEx$EXROUTE <- toupper(mergedDmEx$EXROUTE)
+exRoute$EXROUTE <- toupper(exRoute$EXROUTE)
 
 tsRoute <- tsRoute %>%
               dplyr::group_by(STUDYID) %>%
@@ -233,13 +230,13 @@ tsRoute <- tsRoute %>%
 tsRoute$EXROUTE[tsRoute$NUM_ROUTE > 1] <- NA
 
 # merge animals into TS
-tsAnimals <- merge(tsRoute[,c("STUDYID", "EXROUTE")], mergedDmEx[,c("STUDYID", "USUBJID")])
+tsAnimals <- merge(tsRoute[,c("STUDYID", "EXROUTE")], exRoute[,c("STUDYID", "USUBJID")])
 
 # finally, replace any Null
 # values in DM/EX with those
 # from TS using coalesce
-mergedDmExTs <- merge(mergedDmEx, tsAnimals, by=c('STUDYID', 'USUBJID'))
-finalRoute <- mergedDmExTs %>%
+mergedExTs <- merge(exRoute, tsAnimals, by=c('STUDYID', 'USUBJID'))
+finalRoute <- mergedExTs %>%
                 mutate(ROUTE = toupper(coalesce(EXROUTE.x, EXROUTE.y))) %>%
                 select(-EXROUTE.x, -EXROUTE.y) %>%
                 unique()
@@ -250,8 +247,11 @@ roaControlledTerms <- cont_terms[cont_terms$`Codelist Code` == roaCodelist,]$`CD
 
 
 confMatchingRoute <- finalRoute[finalRoute$ROUTE %in% pRoute,]
-notMatchingRoute <- finalRoute[!finalRoute$USUBJID %in% confMatchingRoute$USUBJID,]
+# some are listed as oral and oral gavage, need to account for these
+confMatchingRoute <- confMatchingRoute[!duplicated(confMatchingRoute[,c('STUDYID', 'USUBJID')]),]
 
+notMatchingRoute <- finalRoute[!finalRoute$USUBJID %in% confMatchingRoute$USUBJID,]
+roaControlledTerms <- roaControlledTerms[!is.na(roaControlledTerms)]
 
 notMatchingRoute$is_controlled <- notMatchingRoute$ROUTE %in% roaControlledTerms
 
@@ -264,9 +264,16 @@ nonMatchingRouteUnique <- notMatchingRoute %>%
 
 confNonMatchingRoute <- nonMatchingRouteUnique[nonMatchingRouteUnique$all_true,]
 
-animals <- unique(mergedDmEx[,c('STUDYID', 'USUBJID')])
+animals <- unique(mergedExTs[,c('STUDYID', 'USUBJID')])
 
 ambigiousRecords <- animals[(!animals$USUBJID %in% confNonMatchingRoute$USUBJID) & (!animals$USUBJID %in% confMatchingRoute$USUBJID),]
+
+
+print(sprintf("Num conf matches: %s", nrow(confMatchingRoute)))
+print(sprintf("Num conf non-matches: %s", nrow(confNonMatchingRoute)))
+print(sprintf("Denominator: %s", nRecords))
+
+print(sprintf("Confidence: %.2f", ((nrow(confMatchingRoute) + nrow(confNonMatchingRoute)) / nRecords) * 100))
 
 
 #########################################
@@ -285,14 +292,14 @@ ambigiousRecords <- animals[(!animals$USUBJID %in% confNonMatchingRoute$USUBJID)
 # TX is not used, because in our database 
 # all animals have species info in TS or DM
 dm <- GenericQuery("SELECT STUDYID, USUBJID, ARMCD, SETCD, SPECIES, STRAIN, SEX FROM DM")
-animals <- GenericQuery('SELECT STUDYID, TSPARMCD, TSVAL FROM TS WHERE TSPARMCD = "SPECIES" or TSPARMCD = "STRAIN"')
+tsspecies <- GenericQuery('SELECT STUDYID, TSPARMCD, TSVAL FROM TS WHERE TSPARMCD = "SPECIES" or TSPARMCD = "STRAIN"')
 
 # dcast requires every row->col pair to be unique
 # in order to cast.  however, some studies have
 # multiple strains.  In order to cast, need to 
 # create a unique (STUDYID, ID) combination 
-animals['ID'] <- rowidv(animals, cols=c("STUDYID", "TSPARMCD"))
-animals <- reshape2::dcast(animals, STUDYID+ID~TSPARMCD, value.var='TSVAL')
+tsspecies['ID'] <- rowidv(tsspecies, cols=c("STUDYID", "TSPARMCD"))
+tsspecies <- reshape2::dcast(tsspecies, STUDYID+ID~TSPARMCD, value.var='TSVAL')
 
 # merging dm and the results from 
 # ts creates a new dataframe with 
@@ -301,7 +308,7 @@ animals <- reshape2::dcast(animals, STUDYID+ID~TSPARMCD, value.var='TSVAL')
 # come from the dm domain and SPECIES.y
 # STRAIN.y come from the TS domain
 
-merged_dm_ts <- merge(dm, animals, by='STUDYID')
+merged_dm_ts <- merge(dm, tsspecies, by='STUDYID')
 
 # replace emtpy strings with NA values
 # this allows the coalesce function to 
@@ -342,15 +349,18 @@ imputed_dm$STRAIN <- toupper(imputed_dm$STRAIN)
 
 speciesCodelist <- 'C77808'
 speciesControlledTerms <- cont_terms[cont_terms$`Codelist Code` == speciesCodelist,]$`CDISC Submission Value`
+speciesControlledTerms <- speciesControlledTerms[!is.na(speciesControlledTerms)]
 
 strainCodelist <- 'C77530'
 strainControlledTerms <- cont_terms[cont_terms$`Codelist Code` == strainCodelist,]$`CDISC Submission Value`
+strainControlledTerms <-  strainControlledTerms[!is.na(strainControlledTerms)]
 
 confMatchingSpecies <- imputed_dm[imputed_dm$SPECIES == pSpecies,]
 nonMatchingSpecies <- imputed_dm[imputed_dm$SPECIES != pSpecies,]
 confNonMatchingSpecies <- nonMatchingSpecies[nonMatchingSpecies$SPECIES %in% speciesControlledTerms,]
 
-ambigiousSpecies <- imputed_dm[(!imputed_dm$USUBJID %in% confNonMatchingSpecies$USUBJID) & (!imputed_dm$USUBJID %in% confMatchingSpecies$USUBJID),]
+ambigiousSpecies <- imputed_dm[(!imputed_dm$USUBJID %in% confNonMatchingSpecies$USUBJID) 
+                               & (!imputed_dm$USUBJID %in% confMatchingSpecies$USUBJID),]
 
 print(sprintf("Num conf matches: %s", nrow(confMatchingSpecies)))
 print(sprintf("Num conf non-matches: %s", nrow(confNonMatchingSpecies)))
@@ -485,6 +495,7 @@ findings_31$MISPEC <- toupper(findings_31$MISPEC)
 
 miCodelists <- c('C120531', 'C88025', 'C132321')
 findingsControlledTerms <- cont_terms[cont_terms$`Codelist Code` %in% miCodelists,]$`CDISC Submission Value`
+findingsControlledTerms <- findingsControlledTerms[!is.na(findingsControlledTerms)]
 
 confFindings <- findings_31[findings_31$MISTRESC %in% findingsControlledTerms,]
 
