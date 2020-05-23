@@ -70,7 +70,7 @@ nStudiesWithDate <- nrow(TSdate)
 # confidently matching is
 # just the number of studies
 # in the specified date interval
-confMatchingStart <- GetStudyListSTSTDTC(fromDTC=startdate, toDTC=enddate)
+confMatchingStart <- GetStudyListSTSTDTC(fromDTC=pFromDTC, toDTC=pToDTC)
 
 # any studies not found by 
 # our algorithm are nonmatching
@@ -109,10 +109,10 @@ nStudiesWithDate <- nrow(TSdesign)
 # only use study design controled terms
 studyDesignCodelist <- 'C89967'
 sdesignControlledTerms <- cont_terms[cont_terms$`Codelist Code` == studyDesignCodelist,]$`CDISC Submission Value`
+sdesignControlledTerms <- sdesignControlledTerms[!is.na(sdesignControlledTerms)]
 
-
-confMatchingDesign <- GetStudyListSDESIGN(design)
-nonMatchingDesign <- TSdesign[(!(TSdesign$STUDYID %in% confMatchDesign$STUDYID)),]
+confMatchingDesign <- GetStudyListSDESIGN(pStudyDesign)
+nonMatchingDesign <- TSdesign[(!(TSdesign$STUDYID %in% confMatchingDesign$STUDYID)),]
 nonMatchingDesign$is_controlled <- toupper(gsub("[\r\n]", "", nonMatchingDesign$TSVAL)) %in% sdesignControlledTerms
 
 
@@ -126,7 +126,8 @@ nonMatchingDesignUnique <- nonMatchingDesign %>%
 confNonMatchingDesign <- nonMatchingDesignUnique[nonMatchingDesignUnique$all_true,]
 
 
-ambiguousDesign <- recordsInTS[(!recordsInTS$STUDYID %in% confNonMatchingDesign$STUDYID) & (!recordsInTS$STUDYID %in% confMatchingDesign$STUDYID),] 
+ambiguousDesign <- recordsInTS[(!recordsInTS$STUDYID %in% confNonMatchingDesign$STUDYID) & 
+                                 (!recordsInTS$STUDYID %in% confMatchingDesign$STUDYID),] 
 
 print(sprintf("Num conf matches: %s", nrow(confMatchingDesign)))
 print(sprintf("Num conf non-matches: %s", nrow(confNonMatchingDesign)))
@@ -168,7 +169,8 @@ nonMatchingControl$TXVAL <- toupper(nonMatchingControl$TXVAL)
 confNonMatchingControl <- nonMatchingControl[nonMatchingControl$TXVAL ==  'POSITIVE CONTROL',]
 
 
-ambiguousControls <- dmCntrls[(!dmCntrls$USUBJID %in% confNonMatchingControl$USUBJID) & (!dmCntrls$USUBJID %in% confMatchingControl$USUBJID),] 
+ambiguousControls <- dmCntrls[(!dmCntrls$USUBJID %in% confNonMatchingControl$USUBJID) 
+                              & (!dmCntrls$USUBJID %in% confMatchingControl$USUBJID),] 
 
 
 
@@ -203,11 +205,13 @@ exRoute <- GenericQuery("SELECT STUDYID, USUBJID, EXROUTE FROM EX")
 dmAnimals <- GenericQuery("SELECT STUDYID, USUBJID FROM DM")
 tsRoute <- data.table(GenericQuery('SELECT STUDYID, TSPARMCD, TSVAL FROM TS WHERE TSPARMCD = "ROUTE"'))
 
+# about 4 studies in EX have empty strings for USUBJID
+# so we need to eliminate these
+exRoute <- exRoute[exRoute$USUBJID != "",]
+
 mergedDmEx <- merge(dmAnimals, unique(exRoute), all=TRUE)
 
-
 nRecords <- nrow(unique(mergedDmEx[,c('STUDYID', 'USUBJID')]))
-
 
 tsRoute <- tsRoute[,.(STUDYID, EXROUTE=toupper(TSVAL))]
 mergedDmEx$EXROUTE <- toupper(mergedDmEx$EXROUTE)
@@ -217,12 +221,24 @@ tsRoute <- tsRoute %>%
               dplyr::mutate(NUM_ROUTE = n()) %>%
               dplyr::ungroup()
 
+# assign NA values to any Route in 
+# TS with more than one value
+# this is done so we can replace 
+# these values from those in EX
+# at the animal level.  The reason
+# behind this is its impossible 
+# to assign multiple route in
+# TS to animals, it has to come 
+# from EX
 tsRoute$EXROUTE[tsRoute$NUM_ROUTE > 1] <- NA
 
+# merge animals into TS
 tsAnimals <- merge(tsRoute[,c("STUDYID", "EXROUTE")], mergedDmEx[,c("STUDYID", "USUBJID")])
 
+# finally, replace any Null
+# values in DM/EX with those
+# from TS using coalesce
 mergedDmExTs <- merge(mergedDmEx, tsAnimals, by=c('STUDYID', 'USUBJID'))
-
 finalRoute <- mergedDmExTs %>%
                 mutate(ROUTE = toupper(coalesce(EXROUTE.x, EXROUTE.y))) %>%
                 select(-EXROUTE.x, -EXROUTE.y) %>%
