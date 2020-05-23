@@ -56,8 +56,8 @@ options(digits.secs = 5)
 
 start<-Sys.time()
 
-studyRoot <- Sys.getenv('SEND_DATA_V2')
-metadataRoot <- file.path(dirname(studyRoot), 'metadata')
+source("sysParameters.R")
+
 domainVariablesFile30 <- file.path(metadataRoot, 'variables30.csv')
 domainVariablesFile31 <- file.path(metadataRoot, 'variables31.csv')
 domainVariables30 <- read.csv(domainVariablesFile30, stringsAsFactors = FALSE)[c('Domain.Prefix', 'Variable.Name', 'Type')]
@@ -66,7 +66,7 @@ domainVariables31 <- read.csv(domainVariablesFile31, stringsAsFactors = FALSE)[c
 dbRoot <- Sys.getenv('SEND_DB_V3')
 
 # connect to database
-db<-dbConnect(RSQLite::SQLite(), paste(dbRoot,"/send_3_2.db", sep=""))
+db<-dbConnect(RSQLite::SQLite(), dbFullName)
 
 # Get list of all SEND 3.1 domains from CDISC SEND 3.1 library archive
 allDomains<-pull(read_excel(paste(metadataRoot,"sendig-3-1-excel.xls", sep="/"), sheet=3), 1)
@@ -422,7 +422,7 @@ for (studyFolder in studyFolders) {
   lastModifiedRecord <- dbGetQuery(db, queryString)$EDRMDF
   
   lastModifiedEDR <- read.csv(file.path(studyFolder, '.lastupdate_EDR.log'), header=FALSE, stringsAsFactors=FALSE)
-  timeString <- strptime(lastModifiedEDR$V1, "%Y-%m-%dT%H:%M:%S:%OS")
+  timeString <- strptime(lastModifiedEDR$V1, "%Y-%m-%dT%H:%M:%OS")
   newStudyMdfTime <- as.POSIXlt(timeString)
   
   ISNEW <- FALSE
@@ -453,8 +453,7 @@ for (studyFolder in studyFolders) {
     # > than all, proceed to input
     # it in the database
     
-    ISNEW <- all(unlist(lapply(lastModifiedStudies$EDRMDF, 
-                               function (oneRecord) {as.POSIXlt(oneRecord) < newStudyMdfTime})))
+    ISNEW <- all(unlist(lapply(prevStudyiesMdfTime, function (oneRecord) {as.POSIXlt(oneRecord) < newStudyMdfTime})))
   }
   
   if (ISNEW) {
