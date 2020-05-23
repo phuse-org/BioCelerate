@@ -10,6 +10,7 @@
 source("importSENDDomains.R")
 source("extractTSParam.R")
 source("addFindingsAnimalAge.R")
+source("subjDataExtract.R")
 
 require(dplyr)
 
@@ -18,36 +19,33 @@ require(dplyr)
 
 # will import the TS Domain
 importSENDDomains('TS')
-uniqueStudiesTS <- length(unique(TS$STUDYID))
+importSENDDomains('EX')
 
-# 1763 unique studies
+# TS variable
+uniqueStudiesTS <- length(unique(TS$STUDYID))
 tsRoute <- TS[TS$TSPARMCD == 'ROUTE']
 
-nrow(tsRoute)
+length(unique(tsRoute$STUDYID))
 table(tsRoute$TSVAL, useNA = 'always')
 
-# no NA so 100% of the time? Manuscript now says 1588/1591
+sum(EX$EXROUTE == '' | is.na(EX$EXROUTE))
 
-##### Table 2 ######
-
-tsSpecies <- TS[TS$TSPARMCD == 'SPECIES']
-
-nrow(tsSpecies)
-# 1764 species, 1763 unique studies
-
-nrow(unique(tsSpecies))
-# 1763/1763 100% -> 99.81% in manuscript
-
-
-tsSpecies <- TS[TS$TSPARMCD == 'SPECIES']
-
-nrow(tsSpecies)
-# 1764 species, 1763 unique studies
-
-nrow(unique(tsSpecies))
-# 1763/1763 100% -> 99.81% in manuscript
+length(EX$EXROUTE)
+table(EX$EXROUTE, useNA = 'always')
 
 ##### Table 3 ######
+
+tsSpecies <- TS[TS$TSPARMCD == 'SPECIES']
+
+length(unique(tsSpecies$STUDYID))
+# 1764 species, 1763 unique studies
+
+tsStrain <- TS[TS$TSPARMCD == 'STRAIN']
+
+length(unique(tsStrain$STUDYID))
+# 1764 species, 1763 unique studies
+
+
 
 importSENDDomains('TX')
 
@@ -55,18 +53,14 @@ uniqueStudiesTX <- unique(TX$STUDYID)
 
 length(uniqueStudiesTX)
 
-# should this be done, by studyid/setcd level???
 txSpecies <- TX[TX$TXPARMCD == 'SPECIES']
 
 length(unique(txSpecies$STUDYID))
 
-# 11/1763 ???? -> many deemed invalid studies due to missing domains, will needed to look at which domains
-# are missing
 
 txStrain <- TX[TX$TXPARMCD == 'STRAIN']
 
 length(unique(txStrain$STUDYID))
-# 14/1763, probably the same deal
 
 importSENDDomains('DM')
 
@@ -74,14 +68,23 @@ uniqueStudiesDM <- unique(DM$STUDYID)
 
 length(uniqueStudiesDM)
 
-# 1763
 
 dmSpecies <- DM[,c('STUDYID', 'SPECIES')] 
 
 # count number of unique studies where dm is nan
+# and is also not an empty string
 length(unique(dmSpecies$STUDYID[((!is.na(dmSpecies$SPECIES)) & (dmSpecies$SPECIES != ''))]))
 
-# 110/1763  35% vs 44% in manuscript.  --- am i doing this right??
+dmStrain <- DM[,c('STUDYID', 'STRAIN')] 
+
+# count number of unique studies where dm is nan
+# and is also not an empty string
+length(unique(dmStrain$STUDYID[((!is.na(dmStrain$STRAIN)) & (dmStrain$STRAIN != ''))]))
+
+
+####
+
+
 
 
 #### Table # ####
@@ -89,9 +92,7 @@ length(unique(dmSpecies$STUDYID[((!is.na(dmSpecies$SPECIES)) & (dmSpecies$SPECIE
 txControl <- TX[TX$TXPARMCD == 'TCNTRL']
 
 length(unique(txControl$STUDYID))
-# 1611 / 1763 91.37% vs 91.76% in manuscript
 
-# find the most common entries expressed for Control type
 
 freqCntrls <- txControl %>% dplyr::count(TXVAL) %>% dplyr::arrange(dplyr::desc(n))
 
@@ -137,12 +138,15 @@ sum(findings_30$MISTRESC != "") / length(findings_30$MISTRESC)
 sum(findings_31$MISTRESC != "") / length(findings_31$MISTRESC)
 # 98.7 vs 99.4
 
-cont_terms <- readxl::read_excel('data/SEND Terminology 2019-09-27.xls', sheet = "SEND Terminology 2019-09-27")[['CDISC Submission Value']]
+cont_terms <- readxl::read_excel('data/SEND Terminology 2019-09-27.xls', sheet = "SEND Terminology 2019-09-27")[c('Codelist Code', 'CDISC Submission Value')]
+miCodelists <- c('C120531', 'C88025', 'C132321')
+cont_terms <- cont_terms[cont_terms$`Codelist Code` %in% miCodelists,]$`CDISC Submission Value`
+cont_terms <- cont_terms[!is.na(cont_terms)]
 
 
-sum(findings_30$MISTRESC %in% cont_terms) / length(findings_30$MISTRESC)
+sum(toupper(findings_30$MISTRESC) %in% cont_terms) / length(findings_30$MISTRESC)
 
-sum(findings_31$MISTRESC %in% cont_terms) / length(findings_31$MISTRESC)
+sum(toupper(findings_31$MISTRESC) %in% cont_terms) / length(findings_31$MISTRESC)
 # 94.30 vs 95.6
 
 frequencyMI30 <- findings_30 %>%
@@ -151,5 +155,14 @@ frequencyMI30 <- findings_30 %>%
 
 
 write.csv(frequencyMI30, 'data/freqMIFindings30.csv')
+
+
+frequencyMI31 <- findings_31 %>%
+                  count(MISTRESC) %>%
+                  arrange(desc(n))
+
+
+write.csv(frequencyMI31, 'data/freqMIFindings31.csv')
+
 
           
