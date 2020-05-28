@@ -15,11 +15,99 @@ source("subjDataExtract.R")
 require(dplyr)
 
 
+cont_terms <- readxl::read_excel('data/SEND Terminology 2019-09-27.xls', 
+                                 sheet = "SEND Terminology 2019-09-27")
+
+### REsults 3.1.1 Study Design ###
+importSENDDomains('TS')
+
+uniqueStudiesTS <- length(unique(TS$STUDYID))
+tsDesign <- TS[TS$TSPARMCD == 'SDESIGN']
+
+uniqueStudiesDesign <- length(unique(tsDesign$STUDYID))
+
+tsDesign$TSVAL <- gsub("[\r\n]", "", toupper(tsDesign$TSVAL))
+
+table(tsDesign$TSVAL, useNA = 'always')
+
+length(unique(tsDesign[tsDesign$TSVAL == 'PARALLEL']$STUDYID))
+
+### Results 3.1.2 Route of Administration ### 
+
+importSENDDomains('TS')
+importSENDDomains('EX')
+uniqueStudiesTS <- length(unique(TS$STUDYID))
+tsRoute <- TS[TS$TSPARMCD == 'ROUTE']
+
+tsRoute <- tsRoute[,.(STUDYID, EXROUTE=toupper(TSVAL))]
+
+
+tsRoute <- tsRoute %>%
+  dplyr::group_by(STUDYID) %>%
+  dplyr::mutate(NUM_ROUTE = n()) %>%
+  dplyr::ungroup()
+
+roaCodelist <- 'C66729'
+roaControlledTerms <- cont_terms[cont_terms$`Codelist Code` == roaCodelist,]$`CDISC Submission Value`
+roaControlledTerms <- roaControlledTerms[!is.na(roaControlledTerms)]
+
+# controlled terms TS Route
+sum(toupper(tsRoute$EXROUTE) %in% roaControlledTerms) / nrow(tsRoute)
+
+
+# controlled terms EX Route
+
+sum(toupper(EX$EXROUTE) %in% roaControlledTerms)
+nrow(EX)
+
+
+### Results 3.1.4 Vehicle ### 
+
+tsVehicle <-  TS[TS$TSPARMCD == 'TRTV']
+length(unique(tsVehicle$STUDYID))
+
+sum((!is.na(EX$EXTRTV)) & (EX$EXTRTV != '')) / nrow(EX)
+
+
+### Results 3.1.5 Study Start Date ### 
+
+tsStartDate <-  TS[TS$TSPARMCD == 'STSTDTC']
+tsStartDate <- tsStartDate[tsStartDate$TSVAL != '']
+length(unique(tsStartDate$STUDYID))
+
+# not in ISO format
+sum(is.na(as.Date(tsStartDate$TSVAL)))
+
+
+
+### Results 3.1.5  TEst faciility ### 
+
+tsFacility <-  TS[TS$TSPARMCD == 'TSTFNAM']
+# tsFacility <- tsFacility[tsFacility$TSVAL != '']
+length(unique(tsFacility$STUDYID))
+
+
+### Results 3.2.2 Sex ### 
+
+importSENDDomains('DM')
+
+table(DM$SEX, useNA='always')
+
+### Results 3.2.4  Test Subject Suppler ### 
+
+tsSupplier <-  TS[TS$TSPARMCD == 'SPLRNAM']
+tsSupplier <- tsSupplier[tsSupplier$TSVAL != '']
+length(unique(tsSupplier$STUDYID))
+
+
 ##### Table 2 ######
 
 # will import the TS Domain
 importSENDDomains('TS')
 importSENDDomains('EX')
+
+uniqueStudiesTS <- length(unique(TS$STUDYID))
+tsRoute <- TS[TS$TSPARMCD == 'ROUTE']
 
 # TS variable
 uniqueStudiesTS <- length(unique(TS$STUDYID))
@@ -118,7 +206,6 @@ nFindings <- nrow(miFindingsAge)
 findingsWithAge <- sum(!(is.na(miFindingsAge$AGE)))
 findingsWithAge / nFindings
 
-# 98.12 vs vs 97.93 in manuscript
 
 ##### 3.3.2 MI Findings #####
 
@@ -133,21 +220,30 @@ findings_31 <- MI[MI$STUDYID %in% studies_31]
 # frequencies 
 
 sum(findings_30$MISTRESC != "") / length(findings_30$MISTRESC)
-# 98.57 vs 98.5
 
 sum(findings_31$MISTRESC != "") / length(findings_31$MISTRESC)
-# 98.7 vs 99.4
+
+findings_30$MISTRESC <- toupper(findings_30$MISTRESC)
+findings_31$MISTRESC <- toupper(findings_31$MISTRESC)
 
 cont_terms <- readxl::read_excel('data/SEND Terminology 2019-09-27.xls', sheet = "SEND Terminology 2019-09-27")[c('Codelist Code', 'CDISC Submission Value')]
 miCodelists <- c('C120531', 'C88025', 'C132321')
-cont_terms <- cont_terms[cont_terms$`Codelist Code` %in% miCodelists,]$`CDISC Submission Value`
-cont_terms <- cont_terms[!is.na(cont_terms)]
+all_cont_terms <- cont_terms[cont_terms$`Codelist Code` %in% miCodelists,]$`CDISC Submission Value`
+all_cont_terms <- all_cont_terms[!is.na(all_cont_terms)]
+
+just_mi_terms <- cont_terms[cont_terms$`Codelist Code` %in% c('C120531', 'C88025'),]$`CDISC Submission Value`
+just_mi_terms <- just_mi_terms[!is.na(just_mi_terms)]
+
+# control counts
+sum(toupper(findings_30$MISTRESC) %in% all_cont_terms) / length(findings_30$MISTRESC)
+sum(toupper(findings_31$MISTRESC) %in% all_cont_terms) / length(findings_31$MISTRESC)
+
+findings_31_not_normal <- findings_31[(findings_31$MISTRESC != 'UNREMARKABLE'),]
+findings_31_not_normal <- findings_31_not_normal[(findings_31_not_normal$MISTRESC != 'NORMAL'),]
+
+sum(toupper(findings_31_not_normal$MISTRESC) %in% just_mi_terms) / length(findings_31_not_normal$MISTRESC)
 
 
-sum(toupper(findings_30$MISTRESC) %in% cont_terms) / length(findings_30$MISTRESC)
-
-sum(toupper(findings_31$MISTRESC) %in% cont_terms) / length(findings_31$MISTRESC)
-# 94.30 vs 95.6
 
 frequencyMI30 <- findings_30 %>%
                   count(MISTRESC) %>%
@@ -164,5 +260,9 @@ frequencyMI31 <- findings_31 %>%
 
 write.csv(frequencyMI31, 'data/freqMIFindings31.csv')
 
+frequencyMI_not_in31 <- findings_31[!(findings_31$MISTRESC %in% just_mi_terms),] %>%
+                          count(MISTRESC) %>%
+                          arrange(desc(n))
 
+write.csv(frequencyMI_not_in31, 'data/NotInfreqMIFindings31.csv')
           
