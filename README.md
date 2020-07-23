@@ -30,7 +30,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
-## Script Overview
+## Script overview
 
 The scripts in this package have been designed and are maintined by [BioCelerate](https://transceleratebiopharmainc.com/biocelerate/) group. 
 If you're interested in contributing to the scripts, please contact:
@@ -46,7 +46,7 @@ The scripts in this repository reply on the following external packages that nee
 * tidyverse
 * RSQLite 
 
-## Configuration
+### Configuration
 
 Prior to using these scripts scripts, a configuration file named `sysParameters.R` needs to be created in the home directory of the scripts. In 
 this file three variables should be named declaring the path of the folder containing the SEND study datasets, the folder in this repository called `metadata/` 
@@ -96,7 +96,7 @@ The SEND dataset folder structure should look like this:
 </pre>
 However, the subdirectories within `/PATH/TO/SEND/DATASETS`  can be titled anything and not necessarily named by their STUDYID.
 
-## Creating the SQLite database.
+### Creating the SQLite database.
 
 The scripts contained within this repository rely on the creation of a SQLite database storing multiple study and domain records. 
 Provided in the repository are two scripts that will create this database for you. 
@@ -115,7 +115,7 @@ errors.
 6) has one unique STUDYID across all domains submitted.
 
 
-## Script overview.
+### Script overview.
 
 The following R modules each contain functions for querying and manipulating the SQLite SEND database. Further documentation and usage can be found within each module. 
 
@@ -126,39 +126,29 @@ An example use case can be found in the script `useCaseQuestionMiFindings.R` and
 
 
 
-## Script Directory 
-
-
-
-
-
-
-
-
-
-
+### Script Directory 
 
 | Script  | Description |
 |---|---|
-| importSENDDomains.R  |  General Module to pull domains from SQLite in R datatable |
-| poolAllStudyDomains.R  |  Creates SQLite database |
-| poolAllStudyDomainsStrict.R  |  Creates SQLite database  |
-| addFindingsAnimalAge.R  |  add animal age to a list of findings  |
-| animalListControl.R  | extract a set of control animals  |
-| epoch_phase_detection.R | helper to detect phase of study from epoch  |
-| extractTSParam.R  | general TS parameter and variable extractor |
-| filterAnimalsSex.R  |  filter a list of animals by sex  |
-| filterFindingsAnimalAge.R  | filter a list of animals by age  |
-| filterFindingsPhase.R  | filter a list of findings by phase  |
-| filterMIFindings.R  |   |
-| filterStudyAnimalRoute.R  | Filter studyids by animal route  |
-| filterStudyAnimalSpeciesStrain.R  | filter studyis by species and/or strain  |
-| miscFunctions.R  | Misc. Functions  |
-| studyListDoseDuration.R  |  filters study by dose duration |
-| studyListSpeciesStrain.R  | filter study by species strain  |
-| studyListStudyDesign.R  | filter study by study design  |
-| studyListStudyStartDate.R  | filter studys by start date  |
-| subjDataExtract.R  | extract animal subject data |
 | useCaseQuestionMiFindings.R  |  Example use care script |
+| importSENDDomains.R  | Import a set of specified SEND domains from an SQLite database  |
+| poolAllStudyDomains.R  |  Create SQLite database |
+| poolAllStudyDomainsStrict.R  |  Create SQLite database  |
+| addFindingsAnimalAge.R  |  Add a variable with the age of animal at the time of finding toa set of rows extracted from a findings domain.  |
+| animalListControl.R  | Extract a list of control animals for a given list of studies  |
+| extractTSParam.R  | Extract the value(s) of one or more TS parameters for a given list of studies |
+| filterAnimalsSex.R  | extracts set of animals of the specified sex from an input data sets with a set of animals.  |
+| filterFindingsAnimalAge.R  | Extract a set of findings within a specified range of age of animals at the time of finding  |
+| filterFindingsPhase.R  | Extract a set of findings for a specified study phase  |
+| filterMIFindings.R  | Extract a set of MI findings for specified MISTRESC and/or MISPEC value(S)  |
+| filterStudyAnimalRoute.R  | Filter studyids by animal route  |
+| filterStudyAnimalSpeciesStrain.R  | Extract studies and animals which fulfills a specified  route  |
+| miscFunctions.R  | Miscellaneous functions  |
+| studyListDoseDuration.R  |  Generate a function GetStudyListDOSDUR to extract a list of SEND study ids which fulfills a specified dose duration period |
+| studyListSpeciesStrain.R  | Extract a list of SEND study ids which fulfills a specified species.  |
+| studyListStudyDesign.R  | Extract a list of SEND study ids which fulfills a specified study design.  |
+| studyListStudyStartDate.R  | Extract a list of SEND study ids the study start date a specified study design.  |
+| subjDataExtract.R  | Extract all rows and columns from a specified finding domain for a specified list of animals|
+
 
 
