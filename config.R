@@ -1,4 +1,9 @@
-#!/usr/bin/env Rscript
+#
+# Just a simple CLI to create the sysParameters.R file for a user
+#
+#
+# Should be run from the command line like 
+# RScript config.R
 
 library(tools)
 require(stringi)
