@@ -98,7 +98,7 @@ However, the subdirectories within `/PATH/TO/SEND/DATASETS`  can be titled anyth
 
 ## Creating the SQLite database.
 
-The scripts contained within this repository rely on the creation of a SQLite database string multiple study and domain records. 
+The scripts contained within this repository rely on the creation of a SQLite database storing multiple study and domain records. 
 Provided in the repository are two scripts that will create this database for you. 
 
 `poolAllStudyDomains.R` will populate the database and assumes that the studies provided within  `/PATH/TO/SEND/DATASETS` contain minimal 
@@ -124,5 +124,44 @@ An example use case can be found in the script `useCaseQuestionMiFindings.R` and
 
 ![Min Findings](useCaseQuestionMiFindings_flow.png "MI Findings")
 
+
+
+## Script Directory 
+
+
+
+
+
+
+
+
+
+
+
+| Script  | Description |
+|---|---|
+| addFindingsAnimalAge.R  |   |
+| animalListControl.R  |   |
+| BioCelelerate.Rproj  |   |
+|  epoch_phase_detection.R |   |
+| extractTSParam.R  |   |
+| filterAnimalsSex.R  |   |
+| filterFindingsAnimalAge.R  |   |
+| filterFindingsPhase.R  |   |
+| filterMIFindings.R  |   |
+| filterStudyAnimalRoute.R  |   |
+| filterStudyAnimalSpeciesStrain.R  |   |
+| importSENDDomains.R  |   |
+| metadata/  |   |
+| miscFunctions.R  |   |
+| poolAllStudyDomains.R  |   |
+| poolAllStudyDomainsStrict.R  |   |
+| studyListDoseDuration.R  |   |
+| studyListSpeciesStrain.R  |   |
+| studyListStudyDesign.R  |   |
+| studyListStudyStartDate.R  |   |
+| subjDataExtract.R  |   |
+| sysParameters.R  |   |
+| useCaseQuestionMiFindings.R  |   |
 
 
