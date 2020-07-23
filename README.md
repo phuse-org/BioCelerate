@@ -140,28 +140,25 @@ An example use case can be found in the script `useCaseQuestionMiFindings.R` and
 
 | Script  | Description |
 |---|---|
-| addFindingsAnimalAge.R  |   |
-| animalListControl.R  |   |
-| BioCelelerate.Rproj  |   |
-|  epoch_phase_detection.R |   |
-| extractTSParam.R  |   |
-| filterAnimalsSex.R  |   |
-| filterFindingsAnimalAge.R  |   |
-| filterFindingsPhase.R  |   |
+| importSENDDomains.R  |  General Module to pull domains from SQLite in R datatable |
+| poolAllStudyDomains.R  |  Creates SQLite database |
+| poolAllStudyDomainsStrict.R  |  Creates SQLite database  |
+| addFindingsAnimalAge.R  |  add animal age to a list of findings  |
+| animalListControl.R  | extract a set of control animals  |
+| epoch_phase_detection.R | helper to detect phase of study from epoch  |
+| extractTSParam.R  | general TS parameter and variable extractor |
+| filterAnimalsSex.R  |  filter a list of animals by sex  |
+| filterFindingsAnimalAge.R  | filter a list of animals by age  |
+| filterFindingsPhase.R  | filter a list of findings by phase  |
 | filterMIFindings.R  |   |
-| filterStudyAnimalRoute.R  |   |
-| filterStudyAnimalSpeciesStrain.R  |   |
-| importSENDDomains.R  |   |
-| metadata/  |   |
-| miscFunctions.R  |   |
-| poolAllStudyDomains.R  |   |
-| poolAllStudyDomainsStrict.R  |   |
-| studyListDoseDuration.R  |   |
-| studyListSpeciesStrain.R  |   |
-| studyListStudyDesign.R  |   |
-| studyListStudyStartDate.R  |   |
-| subjDataExtract.R  |   |
-| sysParameters.R  |   |
-| useCaseQuestionMiFindings.R  |   |
+| filterStudyAnimalRoute.R  | Filter studyids by animal route  |
+| filterStudyAnimalSpeciesStrain.R  | filter studyis by species and/or strain  |
+| miscFunctions.R  | Misc. Functions  |
+| studyListDoseDuration.R  |  filters study by dose duration |
+| studyListSpeciesStrain.R  | filter study by species strain  |
+| studyListStudyDesign.R  | filter study by study design  |
+| studyListStudyStartDate.R  | filter studys by start date  |
+| subjDataExtract.R  | extract animal subject data |
+| useCaseQuestionMiFindings.R  |  Example use care script |
 
 
