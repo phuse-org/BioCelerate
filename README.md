@@ -76,7 +76,7 @@ or normally as a script within R Studio.
 You will be prompted to provide the location of the SEND dataset folder as well as where you would like to store the SQLite database.
 
 The SEND dataset folder structure should look like this:
-
+<pre>
 /PATH/TO/SEND/DATASETS  
 +-- STUDYID1  
    |   +-- ts.xpt  
@@ -93,7 +93,7 @@ The SEND dataset folder structure should look like this:
    |   +-- dm.xpt  
    |   +-- ex.xpt  
    |   +-- etc.  
-
+</pre>
 However, the subdirectories within `/PATH/TO/SEND/DATASETS`  can be titled anything and not necessarily named by their STUDYID.
 
 ## Creating the SQLite database.
