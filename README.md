@@ -79,20 +79,20 @@ The SEND dataset folder structure should look like this:
 
 /PATH/TO/SEND/DATASETS  
 +-- STUDYID1  
-|   +-- ts.xpt  
-|   +-- dm.xpt  
-|   +-- ex.xpt  
-|   +-- etc.  
+   |   +-- ts.xpt  
+   |   +-- dm.xpt  
+   |   +-- ex.xpt  
+   |   +-- etc.  
 +-- STUDYID2   
-|   +-- ts.xpt  
-|   +-- dm.xpt  
-|   +-- ex.xpt  
-|   +-- etc.  
+   |   +-- ts.xpt  
+   |   +-- dm.xpt  
+   |   +-- ex.xpt  
+   |   +-- etc.  
 +-- STUDYID3  
-|   +-- ts.xpt  
-|   +-- dm.xpt  
-|   +-- ex.xpt  
-|   +-- etc.  
+   |   +-- ts.xpt  
+   |   +-- dm.xpt  
+   |   +-- ex.xpt  
+   |   +-- etc.  
 
 However, the subdirectories within `/PATH/TO/SEND/DATASETS`  can be titled anything and not necessarily named by their STUDYID.
 
@@ -122,7 +122,7 @@ The following R modules each contain functions for querying and manipulating the
 An example use case can be found in the script `useCaseQuestionMiFindings.R` and the accompanying data flow is outlined the following schematic. 
 
 
-![Min Findings](useCaseQuestionMiFindings_flow "MI Findings")
+![Min Findings](useCaseQuestionMiFindings_flow.png "MI Findings")
 
 
 
