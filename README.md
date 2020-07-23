@@ -28,3 +28,101 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+
+## Script Overview
+
+The scripts in this package have been designed and are maintined by [BioCelerate](https://transceleratebiopharmainc.com/biocelerate/) group. 
+If you're interested in contributing to the scripts, please contact:
+
+
+## Getting started
+
+### Dependencies 
+
+The scripts in this repository reply on the following external packages that need to be installed into the R programming environment:
+
+* data.table
+* tidyverse
+* RSQLite 
+
+## Configuration
+
+Prior to using these scripts scripts, a configuration file named `sysParameters.R` needs to be created in the home directory of the scripts. In 
+this file three variables should be named declaring the path of the folder containing the SEND study datasets, the folder in this repository called `metadata/` 
+and the location of the SQLite database. This file should look like so:
+
+sysParameters.R
+```
+library(tools)
+
+# 
+studyRoot <- "/PATH/TO/SEND/DATASETS"
+metadataRoot <- file.path(file_path_as_absolute("."), 'metadata')
+
+# SEND data base name and location
+dbFullName <- file.path("/PATH/TO/SQLite", "send.db")
+
+```
+
+Alternatively, this file can be created by running the config.R script from the command line like so:
+
+```
+RScript.R config.R
+```
+
+or normally as a script within R Studio.
+
+You will be prompted to provide the location of the SEND dataset folder as well as where you would like to store the SQLite database.
+
+The SEND dataset folder structure should look like this:
+
+/PATH/TO/SEND/DATASETS
++-- STUDYID1
+|   +-- ts.xpt
+|   +-- dm.xpt
+|   +-- ex.xpt
+|   +-- etc.
++-- STUDYID2
+|   +-- ts.xpt
+|   +-- dm.xpt
+|   +-- ex.xpt
+|   +-- etc.
++-- STUDYID3
+|   +-- ts.xpt
+|   +-- dm.xpt
+|   +-- ex.xpt
+|   +-- etc.
+
+However, the subdirectories within `/PATH/TO/SEND/DATASETS`  can be titled anything and not necessarily named by their STUDYID.
+
+## Creating the SQLite database.
+
+The scripts contained within this repository rely on the creation of a SQLite database string multiple study and domain records. 
+Provided in the repository are two scripts that will create this database for you. 
+
+`poolAllStudyDomains.R` will populate the database and assumes that the studies provided within  `/PATH/TO/SEND/DATASETS` contain minimal 
+errors.  
+
+`poolAllStudyDomainsStrict.R` will populate the database, but is strict and restrictive to include studies in the SQLIte database unless they meet
+ the following criteria: 
+
+1) contains a TS domain
+2) contains a DM domain
+3) contains an EX domain
+4) has readable .xpt files for all domains in the study
+5) containes domain variables only allowed in SEND IG 3.0 and 3.1
+6) has one unique STUDYID across all domains submitted.
+
+
+## Script overview.
+
+The following R modules each contain functions for querying and manipulating the SQLite SEND database. Further documentation and usage can be found within each module. 
+
+An example use case can be found in the script `useCaseQuestionMiFindings.R` and the accompanying data flow is outlined the following schematic. 
+
+
+![alt text](useCaseQuestionMiFindings_flow "MI Findings")
+
+
+
