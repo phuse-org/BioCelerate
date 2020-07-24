@@ -1,6 +1,6 @@
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/phuse-org/phuse-scripts/blob/master/LICENSE.md) 
 
-# BioCelelerate Script Repository
+# BioCelerate Script Repository
 
 The search scripts shared in this folder are intended to be used to query and collate information from 
 SEND datasets which can then be utilized by the searcher for their own cross-study analysis.  Nothing 
@@ -32,8 +32,9 @@ THE SOFTWARE.
 
 ## Script overview
 
-The scripts in this package have been designed and are maintined by [BioCelerate](https://transceleratebiopharmainc.com/biocelerate/) group. 
-If you're interested in contributing to the scripts, please contact:
+The scripts in this package have been designed and are maintined by [BioCelerate](https://transceleratebiopharmainc.com/biocelerate/) in collaboration with [phuse nonclinical topics working group](https://www.phusewiki.org/wiki/index.php?title=Nonclinical_Topics_Working_Group).
+
+If you have questions or you're interested in contributing to the scripts, please contact: 
 
 
 ## Getting started
@@ -130,25 +131,25 @@ An example use case can be found in the script `useCaseQuestionMiFindings.R` and
 
 | Script  | Description |
 |---|---|
-| useCaseQuestionMiFindings.R  |  Example use care script |
-| importSENDDomains.R  | Import a set of specified SEND domains from an SQLite database  |
-| poolAllStudyDomains.R  |  Create SQLite database |
-| poolAllStudyDomainsStrict.R  |  Create SQLite database  |
-| addFindingsAnimalAge.R  |  Add a variable with the age of animal at the time of finding toa set of rows extracted from a findings domain.  |
-| animalListControl.R  | Extract a list of control animals for a given list of studies  |
-| extractTSParam.R  | Extract the value(s) of one or more TS parameters for a given list of studies |
+| useCaseQuestionMiFindings.R  |  Example use case script. |
+| importSENDDomains.R  | Import a set of specified SEND domains from a SQLite database.  |
+| poolAllStudyDomains.R  |  Create SQLite database. |
+| poolAllStudyDomainsStrict.R  |  Create SQLite database.  |
+| addFindingsAnimalAge.R  |  Add a variable with the age of animal at the time of finding to a set of rows extracted from a findings domain.  |
+| animalListControl.R  | Extract a list of control animals for a given list of studies.  |
+| extractTSParam.R  | Extract the value(s) of one or more TS parameters for a given list of studies. |
 | filterAnimalsSex.R  | extracts set of animals of the specified sex from an input data sets with a set of animals.  |
-| filterFindingsAnimalAge.R  | Extract a set of findings within a specified range of age of animals at the time of finding  |
-| filterFindingsPhase.R  | Extract a set of findings for a specified study phase  |
-| filterMIFindings.R  | Extract a set of MI findings for specified MISTRESC and/or MISPEC value(S)  |
-| filterStudyAnimalRoute.R  | Filter studyids by animal route  |
-| filterStudyAnimalSpeciesStrain.R  | Extract studies and animals which fulfills a specified  route  |
-| miscFunctions.R  | Miscellaneous functions  |
-| studyListDoseDuration.R  |  Generate a function GetStudyListDOSDUR to extract a list of SEND study ids which fulfills a specified dose duration period |
+| filterFindingsAnimalAge.R  | Extract a set of findings within a specified range of age of animals at the time of finding.  |
+| filterFindingsPhase.R  | Extract a set of findings for a specified study phase.  |
+| filterMIFindings.R  | Extract a set of MI findings for specified MISTRESC and/or MISPEC value(s).  |
+| filterStudyAnimalRoute.R  | Filter studyids by animal route.  |
+| filterStudyAnimalSpeciesStrain.R  | Extract studies and animals which fulfill a specified route.  |
+| miscFunctions.R  | Miscellaneous functions.  |
+| studyListDoseDuration.R  |  Generate a function GetStudyListDOSDUR to extract a list of SEND study ids which fulfills a specified dose duration period. |
 | studyListSpeciesStrain.R  | Extract a list of SEND study ids which fulfills a specified species.  |
 | studyListStudyDesign.R  | Extract a list of SEND study ids which fulfills a specified study design.  |
 | studyListStudyStartDate.R  | Extract a list of SEND study ids the study start date a specified study design.  |
-| subjDataExtract.R  | Extract all rows and columns from a specified finding domain for a specified list of animals|
+| subjDataExtract.R  | Extract all rows and columns from a specified finding domain for a specified list of animals. |
 
 
 
