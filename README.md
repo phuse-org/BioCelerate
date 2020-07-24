@@ -34,7 +34,7 @@ THE SOFTWARE.
 
 The scripts in this package have been designed and are maintined by [BioCelerate](https://transceleratebiopharmainc.com/biocelerate/) in collaboration with [phuse nonclinical topics working group](https://www.phusewiki.org/wiki/index.php?title=Nonclinical_Topics_Working_Group).
 
-If you have questions or you're interested in contributing to the scripts, please contact: 
+If you have questions or you're interested in contributing to the scripts, please contact any of the GitHub contributors listed on the right of this page.   
 
 
 ## Getting started
