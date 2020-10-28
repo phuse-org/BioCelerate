@@ -10,3 +10,6 @@ sysParameters*.R
 
 # data folders
 /data
+/shell_script
+/datasets
+/SEND_DATASETS
