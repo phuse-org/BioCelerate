@@ -53,13 +53,13 @@ start<-Sys.time()
 #options(stringsAsFactors = FALSE)
 
 # Base folders
-baseDir <-'S:/DATA MANAGEMENT/@Data Science/BioCelerate/SEND Harmonization'
-studyRoot <- paste(baseDir,'Data/studies',sep='/')
-metadataRoot <- paste(baseDir,'Data/metadata',sep='/')
-dbRoot <- paste(baseDir,'Data/db',sep='/')
+baseDir <- "C:/Users/Md.Ali/OneDrive - FDA/Documents/00_projects/BioCelerate"
+studyRoot <- paste(baseDir,'datasets',sep='/')
+metadataRoot <- paste(baseDir,'datasets/metadata',sep='/')
+dbRoot <- paste(baseDir,'database',sep='/')
 
 # connect to database
-db<-dbConnect(RSQLite::SQLite(), paste(dbRoot,"/send.db", sep=""))
+db<-dbConnect(RSQLite::SQLite(), paste(dbRoot,"/send_test.db", sep=""))
 
 # Get list of all SEND 3.1 domains from CDISC SEND 3.1 library archive
 allDomains<-pull(read_excel(paste(metadataRoot,"sendig-3-1-excel.xls", sep="/"), sheet=3), 1)
