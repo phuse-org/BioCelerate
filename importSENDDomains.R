@@ -45,14 +45,19 @@ importSENDDomains<-function(domainList, studyList=NULL) {
   ############################################################
   # Import one domain - assign output into a global table 
   importDomain<-function(domain) {
-    assign(toupper(domain),doImportDomain(domain, studyList), envir=.GlobalEnv)
+    if (!is.null(studyList)) 
+      assign(toupper(domain),
+             genericQuery(sprintf('select * from %s where studyid in (:1)', domain), studyList),
+             envir=.GlobalEnv)
+    else 
+      assign(toupper(domain),
+             genericQuery(sprintf('select * from %s', domain)),
+             envir=.GlobalEnv)
     return()
   }
   ############################################################
 
-
   # Import each domain from the specified list
   lapply(domainList, importDomain)
-  
 }
 

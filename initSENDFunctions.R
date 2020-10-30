@@ -27,6 +27,7 @@
 library(tools)
 library(data.table)
 library(readxl)
+library(magrittr)
 
 ###################################################################################
 # Function name : initEnvironment
@@ -44,9 +45,6 @@ library(readxl)
 # Output        : Global variables:
 #                   - GdbHandle - handle to opened db connection
 #                   - GdbSchenma - schema name for SEND db tables
-#                 Global function pointing at the db type specific function to 
-#                 import a domain from db:
-#                   - doImportDomain
 #                 Global data tables with imported CDISC CT code lists and values
 #                   - CDISCctCodeLists
 #                   - CDISCctCodeValues
@@ -148,13 +146,6 @@ initEnvironment<-function(dbType=NULL, dbPath=NULL,  dbUser=NULL, dbPwd=NULL, db
     disconnectDB<<-get(disconnectDBName)
   else
     stop(sprintf('A function named %s is missing', doImportDomainName))
-  
-  ## Assign function specific  for db type to import a SEND domain from db
-  doImportDomainName<-paste0('doImportDomain_', dbProperties[,.(db_type)])
-  if (exists(doImportDomainName))
-    doImportDomain<<-get(doImportDomainName)
-  else
-    stop(sprintf('A function named %s is missing', doImportDomainName))
 }
 
 ##############################################################################################
@@ -215,22 +206,24 @@ disconnectDB_oracle<-function() {
 
 ## Helper function 
 # Take a SQL statement as input 
-# - if a schema name has been defined, 
 #   return the statement modified in this way:
 #   - substitute lineshifts (\n) with space
 #   - substitute multiple consecutive spaces with one space
-#   - add the schema plus '.' in front of all table names, 
-#     i.e. names following a 'from ' or 'join '
-# - else return the statement unchanged
+#   - substitute '==' with '='
+#   - if the global defined db schame names is not empty -
+#     - add the schema plus '.' in front of all table names , 
+#       i.e. names following a 'from ' or 'join ' except 
+#       subqueries (starting with '(')
 selectStmtAddSchema <- function(stmt) {
-  if (GdbSchema != '')
-    return(str_replace_all(str_replace_all(str_replace_all(stmt, 
-                                                           '\n', ' '), 
-                                           ' +', ' '), 
-                           regex('(from |join )', ignore_case = TRUE), 
-                           paste0('\\1', GdbSchema, '.')))
-  else 
-    return(stmt)
+  vSchema <- ifelse(GdbSchema=='','',paste0(GdbSchema,'.'))
+  return(
+    stmt %>%
+      str_replace_all('\n', ' ') %>%
+      str_replace_all(' +', ' ') %>%
+      str_replace_all('=+', '=') %>%
+      str_replace_all(regex('(from |join )([^(])', ignore_case = TRUE), 
+                      paste0('\\1', vSchema, '\\2'))
+  )
 }
 
 ##
@@ -238,114 +231,87 @@ selectStmtAddSchema <- function(stmt) {
 #  It prepares the given select statement by adding potential schema name 
 #  to all tables and execute the genericQuery funtcion specific for the 
 #  actual db type
-genericQuery <- function(query_string, query_params=NULL) {
-  get(paste0('genericQuery_', GdbType))(selectStmtAddSchema(query_string),
-                                                           query_params)
+#  ## ADD POSIBILITY FOR MULTIPLE QUERY PARAMS
+genericQuery <- function(queryString, queryParams=NULL) {
+  get(paste0('genericQuery_', GdbType))(selectStmtAddSchema(queryString),
+                                        queryParams)
 }
 
 ## DB specific functions:
 # SQLite
-genericQuery_sqlite<-function(query_string, query_params) {
-  #print(query_string)
-  
-  if (is.null(query_params)){
-    query_result <- setDT(RSQLite::dbGetQuery(GdbHandle, query_string))
+# 
+#  ## ADD POSIBILITY FOR MULTIPLE QUERY PARAMS
+genericQuery_sqlite<-function(queryString, queryParams) {
+ 
+  if (is.null(queryParams)){
+    return(setDT(RSQLite::dbGetQuery(GdbHandle, queryString)))
   } else {
     # Input query parameters are converted to a unnamed list used as bind variable 
     # regardless of the type of input
-    query_result <- setDT(RSQLite::dbGetQuery(GdbHandle, query_string, 
-                                              list(unname(unlist(list(list(query_params)))))))
-  }
-  
-  return(query_result) 
+    return(setDT(RSQLite::dbGetQuery(GdbHandle, queryString, 
+                                              list(unname(unlist(list(list(queryParams))))))))
+  } 
 }
 
-
 # Oracle
-genericQuery_oracle<-function(query_string, query_params=NULL) {
-  #print(query_string)
-  if (is.null(query_params)){
-    cur <- ROracle::dbSendQuery(GdbHandle, query_string)
+# 
+#  ## ADD 
+#  # POSIBILITY FOR MULTIPLE QUERY PARAMS
+genericQuery_oracle<-function(queryString, queryParams=NULL) {
+  # SQL clause to replace 'in (:nn)' clause to make Oracle possible to execute an 'in' statement 
+  # using a bind variable with values for the in-list
+  inStrReplacement <- "in (select regexp_substr(colval\\1, '[^,]+', 1, column_value) colval\\1
+                            from (select :\\1 as colval\\1 from dual) t,
+                            table(cast(multiset(select level from dual
+                                                connect by level <= regexp_count(colval\\1, ',') + 1
+                            ) as sys.odcinumberlist)))"
+  # TO BE CHANGED TO JOIN INSTEAD (if it's not an 'not in' or not part of a 'or' construction....): 
+  #join ( select regexp_substr(colval1, '[^,]+', 1, column_value) colval\\1 
+  #                          from (select :\\1 as colval\\1 
+  #                                  from dual) t, 
+  #                                             table(cast(multiset(select level 
+  #                                                                   from dual 
+  #                                                                   connect by level <= regexp_count(colval\\1, ',') + 1 ) as sys.odcinumberlist ) )) bindtab\\1
+  #    on bindtab\\1.colval\\1 = <column referenced in clause>;
+  
+  if (is.null(queryParams)){
+    cur <- ROracle::dbSendQuery(GdbHandle, queryString)
   } else {
-    cur <- ROracle::dbSendQuery(GdbHandle, query_string, query_params)
-  }
-  
-  # Fetch all rows, clear buffer and return data
-  query_result<-setDT(ROracle::fetch(cur))
-  ROracle::dbClearResult(cur)
-  
-  return(query_result) 
-}
-
-
-##############################################################################################
-## Functions to import a domain specific for each db type
-##############################################################################################
-
-# SQLite
-doImportDomain_sqlite<-function(domain, studyList=NULL) {
-  if (!is.null(studyList)) {
-    # Construct the select statement with a filtering of studyid values
-    stmt<-sprintf( "select * from %s where studyid in (:1)", domain)
-
-    # Parse select statement and bind input list of studyids
-    cur<-RSQLite::dbSendQuery(GdbHandle, stmt)
-    RSQLite::dbBind(cur, list(unname(unlist(list(studyList)))))
-
-    # # Save the content of studyList parameter as a temporary table in the database
-    # dbWriteTable(GdbHandle, "temp_studyList", studyList, temporary=TRUE, overwrite=TRUE)
-    # stmt<-sprintf("select t.* from %s t join temp_studyList s on s.studyid = t.studyid", domain)
-    # cur<-RSQLite::dbSendQuery(GdbHandle, stmt)
-  }
-  else {
-    # Construct select statement of all rows and parse it
-    stmt<-sprintf("select * from %s", domain)
-    cur<-RSQLite::dbSendQuery(GdbHandle, stmt)
-  }
-  
-  # Fetch all rows, clear buffer and return data
-  domainData<-setDT(RSQLite::dbFetch(cur))
-  RSQLite::dbClearResult(cur)
-  
-  return(domainData) 
-}
-
-
-# Oracle
-doImportDomain_oracle<-function(domain, studyList=NULL) {
-  if (!is.null(studyList)) {
-    # construct the select statement with a filtering of studyid values
-    # - converts to an in-memory table in oracle to limit the set of 
-    #   studies to extract
-    stmt<-sprintf(
-      "with studylist (studyid) as 
-        (
-            select
-              regexp_substr(studyid, '[^,]+', 1, column_value) studyid
-            from (select :1 as studyid from dual) t,
-                 table(cast(multiset(select level from dual
-                                     connect by level <= regexp_count(studyid, ',') + 1
-                                    ) as sys.odcinumberlist))
-        )
-        select * from %s.%s
-        where studyid in (select studyid from studylist)", 
-      GdbSchema, domain)
+    # Check if statements contains in statements
+    if (grepl('in \\(:\\d+\\)', queryString, ignore.case = TRUE)) {
+      # Replace the in statement with correct Oracle syntax
+      stmt <- str_replace_all(queryString, 
+                              regex('in \\(:(\\d+)\\)', ignore_case = TRUE), 
+                              inStrReplacement)
+      print(stmt)
+      # Ensure in the in-list is a comma separated string
+      bindVarVal <- paste0(unlist(list(queryParams)), collapse=',')
+    }
+    else {
+      stmt <- queryString
+      bindVarVal <- unname(unlist(list(queryParams)))
+    }
     
-    # Parse select statement and bind input list of studyids 
-    # - convert list  to a comma separated string
-    cur<-ROracle::dbSendQuery(GdbHandle, stmt, paste0(unlist(list(studyList)), collapse=',')) 
-  }
-  else {
-    # Construct select statement of all rows and parse it
-    stmt<-sprintf("select * from %s.%s", GdbSchema, domain)
-    cur<-ROracle::dbSendQuery(GdbHandle, stmt)
+    # Create a data frame with the bind var value included for each 
+    # instance of bind var reference in statement
+    # TO BE USED WHEN SUPPORT FOR MULTIPLE QUERY PARAMS IS ADDED:
+    #      sort(unique(str_extract_all(stmt, ':\\d*')[[1]]))
+    n <- 0
+    for (v in str_extract_all(stmt, ':\\d+')[[1]]) {
+      n <- n + 1
+      if (n==1) 
+        bindVarDF <- data.frame(bindVarVal)
+      else 
+        bindVarDF <- cbind(bindVarDF, bindVarVal)
+    }
+    cur <- ROracle::dbSendQuery(GdbHandle, stmt, bindVarDF)
   }
   
   # Fetch all rows, clear buffer and return data
-  domainData<-setDT(ROracle::fetch(cur))
+  queryResult<-setDT(ROracle::fetch(cur))
   ROracle::dbClearResult(cur)
   
-  return(domainData) 
+  return(queryResult) 
 }
 
 ###################################################################################

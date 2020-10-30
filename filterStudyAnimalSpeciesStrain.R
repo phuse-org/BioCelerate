@@ -48,15 +48,14 @@
 #                  Non-empty UNCERTAIN_MSG values are merged with non-empty UNCERTAIN_MSG values 
 #                  which may exist in the input set of animals (animalList).
 #
-# Input         : - The TS, TX and DM domains - are imported from the pooled SEND data store if 
-#                   the don't exist in workspace.
+# Input         : - TS, TX and DM
 #                 - A data tables specified in the input parameters animalList:
 #                   It contains the list of animals to filter for specified species and strain value(s)
 #                   - must contain these character variables:
 #                       STUDYID
 #                       USUBJID
 #                     other variables may be included 
-#                 - CDISC CT code lists SPECIES and STRAIN imported from a CDISC CT file.
+#                 - CDISC CT code lists SPECIES and STRAIN.
 #                   
 # Output        : A data table with the character columns:
 #                   STUDYID
@@ -80,7 +79,7 @@
 
 library(data.table)
 
-FilterAnimalsSpeciesStrain<-function(animalList=NULL, speciesFilter=NULL, strainFilter=NULL, inclUncertain=FALSE, exclusively=FALSE) {
+FilterAnimalsSpeciesStrain<-function(animalList, speciesFilter=NULL, strainFilter=NULL, inclUncertain=FALSE, exclusively=FALSE) {
   
   ##################################################################################################################
   
@@ -169,196 +168,263 @@ FilterAnimalsSpeciesStrain<-function(animalList=NULL, speciesFilter=NULL, strain
     stop("Parameter Exclusively must be either TRUE or FALSE")
   }
   
-  # List of studyid values included in the input table of animals
-  animalStudies<-unique(animalList[,.(STUDYID)])
-  
-  # import TS, TX and DM if they not already exists
-  if (!exists("TS")) {
-    importSENDDomains(c("TS"))
-  }
-  if (!exists("TX")) {
-    importSENDDomains(c("TX"), animalStudies)
-  }
-  if (!exists("DM")) {
-    importSENDDomains(c("DM"), animalStudies)
-  }
-  
-  ##################################################################################################################
-  
-  # 1. First we look into the SPECIES level (whether or not strainFilter has been specified)
-   
-  # Get values of code list SPECIES from CDISC CT
+  # Get values of code lists SPECIES and STRAINS from CDISC CT
   ctSPECIES<-getCTCodListValues("SPECIES")
-
-  # Extract all TS rows for parameter SPECIES, rename TSVAL to SPECIES_TS 
-  # - remove duplicates
-  # - limit to the set of studies for input set of animals
-  tsSPECIESall<-merge(unique(TS[TSPARMCD == 'SPECIES', .(STUDYID,SPECIES_TS=toupper(trimws(TSVAL)))]), animalStudies, by='STUDYID')
-  # Add studies with no TS parameter SPECIES from the set of studies for input set of animals
-  tsSPECIESall<-
-    rbindlist(list(tsSPECIESall,
-                   fsetdiff(animalStudies, 
-                            tsSPECIESall[,.(STUDYID)])[!is.na(STUDYID),.(STUDYID, SPECIES_TS=as.character(NA))]),
-              use.names=TRUE, fill=TRUE)
+  ctSTRAIN<-getCTCodListValues("STRAIN")
   
+  
+  # Extract set of on all potential control animals for list of studyid values 
+  # included in the input table of animals
+  # Join species and strains values at trial level (TS), set level (TX) and 
+  # animal level (DM) together for each animal
+  #  - ensure all empty SPECIES_xx and STRAIN_xx values are NA
+  animalSpeciesStrainAll <-
+    genericQuery("select distinct 
+                         ts1.studyid  as STUDYID, 
+                         dm.usubjid   as USUBJID,
+                         case ts2.tsval 
+                            when '' then null 
+                            else ts2.tsval
+                         end          as SPECIES_TS, 
+                         case ts3.tsval 
+                            when '' then null 
+                            else ts3.tsval
+                         end          as STRAIN_TS, 
+                         case tx2.txval 
+                            when '' then null 
+                            else tx2.txval
+                         end          as SPECIES_TX, 
+                         case tx3.txval 
+                            when '' then null 
+                            else tx3.txval
+                         end          as STRAIN_TX,
+                         case dm.species 
+                            when '' then null 
+                            else dm.species
+                         end          as SPECIES_DM,
+                         case dm.strain 
+                            when '' then null 
+                            else dm.strain
+                         end          as STRAIN_DM
+                    from ts      ts1
+                    left join ts ts2
+                      on ts2.studyid = ts1.studyid
+                     and ts2.tsparmcd = 'SPECIES'
+                    left join ts ts3
+                      on ts3.studyid = ts1.studyid
+                     and coalesce(ts3.tsgrpid, '<null>') = coalesce(ts2.tsgrpid, '<null>')
+                     and ts3.tsparmcd = 'STRAIN'
+                    left join (select distinct studyid, setcd
+                                 from tx
+                                where txparmcd = 'TCNTRL') tx1
+                      on tx1.studyid = ts1.studyid
+                     left join tx tx2
+                       on tx2.studyid = tx1.studyid
+                      and tx2.setcd = tx1.setcd
+                      and tx2.txparmcd = 'SPECIES'
+                     left join tx tx3
+                       on tx3.studyid = tx1.studyid
+                      and tx3.setcd = tx1.setcd
+                      and tx3.txparmcd = 'STRAIN'
+                     left join dm
+                       on dm.studyid = tx1.studyid
+                      and dm.setcd = tx1.setcd
+                    where ts1.studyid in (:1)",
+                 unique(animalList[,.(STUDYID)]))
+  
+  # Add variables SPECIES and STRAIN with the first non-empty species/strain 
+  # value from (in this order) DM, TX or TS
+  animalSpeciesStrainAll[, `:=` (SPECIES = fcoalesce(as.character(SPECIES_DM),
+                                                     as.character(SPECIES_TX),
+                                                     as.character(SPECIES_TS)),
+                                 STRAIN  = fcoalesce(as.character(STRAIN_DM),
+                                                     as.character(STRAIN_TX),
+                                                     as.character(STRAIN_TS)))]
+  
+  ## Look into the SPECIES
+  
+  # Extract unique species data per animals
+  animalSpeciesAll <- unique(animalSpeciesStrainAll[,.(STUDYID, USUBJID, 
+                                                       SPECIES_TS = as.character(SPECIES_TS),
+                                                       SPECIES_TX = as.character(SPECIES_TX), 
+                                                       SPECIES_DM = as.character(SPECIES_DM),
+                                                       SPECIES = as.character(SPECIES))])
   # Add variables with 
   #  - count of number of distinct SPECIES per study
-  #  - concatenation of all species per study (for studies with one species this is equal to SPECIES_TS)
-  tsSPECIESall[, `:=` (ALL_SPECIES = unique(SPECIES_TS), NUM_SPECIES_TS = .N), by = STUDYID]
-  tsSPECIESall[,`:=`(ALL_SPECIES_TS = c(.SD)), by = STUDYID, .SDcols='SPECIES_TS']
+  #  - concatenation of all species per study (for studies with one species, this is equal to SPECIES_TS)
+  studySpecies <-
+    unique(unique(animalSpeciesAll[, .(STUDYID, SPECIES_TS)])[
+            , `:=` (NUM_SPECIES_TS = .N), by = STUDYID][
+            , `:=` (ALL_SPECIES_TS = c(.SD)), by = STUDYID, .SDcols='SPECIES_TS'][
+            , .(STUDYID,NUM_SPECIES_TS,ALL_SPECIES_TS )], by='STUDYID')
+  # Add calculated columns to the list of animals
+  animalSpeciesAll <- merge(animalSpeciesAll, 
+                            studySpecies, 
+                            by = 'STUDYID')
   
-  # JOin the list of studies/species with DM to get all animal level SPECIES 
-  #  - the list will contain STUDYID/USUBJID duplicates for studies with multiple SPECIES registered in TS               
-  animalSPECIESall<-               
-    merge(merge(tsSPECIESall,
-                animalList[,.(STUDYID, USUBJID)],
-                by='STUDYID', allow.cartesian = TRUE),
-          DM[,.(STUDYID, USUBJID, SETCD, SPECIES_DM=ifelse(SPECIES=="" ,as.character(NA),toupper(trimws(SPECIES))))],
-          by=c('STUDYID','USUBJID'), allow.cartesian = TRUE)
+  # Add variable with count of unique USUBJID per study (is expected to be one usubjid per studyid per TSPARMCD 'SPECIES' )
+  animalSpeciesAll[, `:=` (NUM_ANIMALS = .N), by = .(STUDYID, USUBJID)]
   
-  # Join the list of studies/animals/species with TX to get all set level SPECIES
-  #  - add variable SPECIES with the first non-empty species value from DM, TX or TS
-  #  - add variable with count of unique USUBJID per study (there is expected to be one usubjid per studyid per TSPARMCD 'SPECIES' )
-  animalSPECIESall<-
-    merge(animalSPECIESall, 
-          unique(TX[TXPARMCD=='SPECIES',.(STUDYID,SETCD,SPECIES_TX=toupper(trimws(TXVAL)))]), 
-          by=c('STUDYID','SETCD'), all.x=TRUE )[,`:=` (SPECIES=fcoalesce(as.character(SPECIES_DM),SPECIES_TX,SPECIES_TS))]
-  animalSPECIESall[, `:=` (NUM_ANIMALS = .N), by = .(STUDYID, USUBJID)]
   
-  # Identify uncertain animals - add variable UNCERTAIN_MSG
-  animalSPECIESall[,`:=` (UNCERTAIN_MSG=mapply(identifyUncertainSPECIES, SPECIES, SPECIES_TS, SPECIES_TX, SPECIES_DM,  ALL_SPECIES_TS, NUM_SPECIES_TS, NUM_ANIMALS ))]
+  # Identify uncertain animals - add variable SPECIES_UNCERTAIN_MSG
+  # - remove temp columns used in the processing and remove duplicates for for multiple SPECIES at study level
+  animalSpecies <- 
+    unique(
+      animalSpeciesAll[,`:=` (SPECIES_UNCERTAIN_MSG=mapply(identifyUncertainSPECIES, 
+                                                   SPECIES, 
+                                                   SPECIES_TS, 
+                                                   SPECIES_TX,
+                                                   SPECIES_DM,  
+                                                   ALL_SPECIES_TS,
+                                                   NUM_SPECIES_TS, 
+                                                   NUM_ANIMALS ))][, `:=` (SPECIES_TS = NULL,
+                                                                           SPECIES_TX = NULL,
+                                                                           SPECIES_DM = NULL,
+                                                                           ALL_SPECIES_TS = NULL,
+                                                                           NUM_SPECIES_TS = NULL,
+                                                                           NUM_ANIMALS = NULL)], 
+      by=c('STUDYID', 'USUBJID'))
   
-  # Extract unique set of animals and related species - exclude uncertain animals
-  animalSPECIESallUniq<-unique(animalSPECIESall[is.na(UNCERTAIN_MSG), .(STUDYID, USUBJID, SPECIES)])
-  
-  # Extract animals match 
-  foundAnimalsSPECIES<-unique(animalSPECIESallUniq[SPECIES %in% speciesFilter, .(STUDYID, USUBJID, SPECIES)])
-  
+  # Extract animals matching the species filter - exclude uncertain rows
+   foundAnimalSpecies <- animalSpecies[SPECIES %in% speciesFilter & is.na(SPECIES_UNCERTAIN_MSG),
+                                      .(STUDYID, USUBJID, SPECIES)]
   if (exclusively) {
-  # Find studies with animals having other SPECIES than the requested
-    foundAnimalsSPECIES<-
-      merge(foundAnimalsSPECIES,
+    # Find and exclude animals for studies with animals having other SPECIES than the requested
+     foundAnimalSpecies<-
+      merge( foundAnimalSpecies,
             # Set of studies to keep:
-            fsetdiff(unique(foundAnimalsSPECIES[,.(STUDYID)]),
+            fsetdiff(unique( foundAnimalSpecies[,.(STUDYID)]),
                      # Set of studies (included in the found set of animals with matching SPECIES values) with possible 
                      # SPECIES values not included in the speciesFilter:  
                      unique(fsetdiff(merge(# Set of possible SPECIES values per study in the input set of animals:
-                                           unique(animalSPECIESallUniq[,.(STUDYID, SPECIES)]),
-                                           unique(foundAnimalsSPECIES[,.(STUDYID)]), by='STUDYID'),
-                            unique(foundAnimalsSPECIES[,.(STUDYID, SPECIES)]))[,.(STUDYID)])),
+                                           unique(animalSpecies[,.(STUDYID, SPECIES)]),
+                                           unique( foundAnimalSpecies[,.(STUDYID)]), 
+                                           by='STUDYID'),
+                                     unique( foundAnimalSpecies[,.(STUDYID, SPECIES)]))[,.(STUDYID)])),
             by='STUDYID')
-  
+    
   }
   
+
   
-  if (!InclStrainFilter) {
-    # No strainFilter has been specified
-    
-    # The complete set of animals to return - add the uncertain animals
-    if (inclUncertain)
-      # Add the uncertain animals
-      foundAnimals<-rbindlist(list(foundAnimalsSPECIES, 
-                                   unique(animalSPECIESall[!is.na(UNCERTAIN_MSG), .(STUDYID, USUBJID, SPECIES, UNCERTAIN_MSG)])),
-                              use.names=TRUE, fill=TRUE)
-    else 
-      foundAnimals<-foundAnimalsSPECIES
-  } 
-  else {
-    
-  ##########################################################################################################################
+  ## Look into the STRAIN
   
-    # 2. strainFilter has been specified - limit set of animals extracted at SPECIES level to specified STRAIN(s)
+  # Extract unique strain data per animal matching the set of animals filtered for species
+  animalStrainAll <- 
+    unique(merge(animalSpeciesStrainAll[SPECIES == as.character(SPECIES_TS) | 
+                                        (is.na(SPECIES_TS) & SPECIES == as.character(SPECIES_TX)) |
+                                        (is.na(SPECIES_TS) & is.na(SPECIES_TX) & SPECIES == as.character(SPECIES_DM)),
+                                        .(STUDYID, USUBJID, 
+                                          STRAIN_TS = as.character(STRAIN_TS), 
+                                          STRAIN_TX = as.character(STRAIN_TX), 
+                                          STRAIN_DM = as.character(STRAIN_DM), 
+                                          STRAIN, SPECIES)],
+           foundAnimalSpecies,
+          by = c('STUDYID', 'USUBJID', 'SPECIES'),
+          all.y = TRUE))
   
-    # Get values of code list STRAIN from CDISC CT
-    ctSTRAIN<-getCTCodListValues("STRAIN")
-    
-    # List of studyid values included in the list of animals extracted at SPECIES level
-    animalSPECIESStudies<-unique(foundAnimalsSPECIES[,.(STUDYID)])
-    
-    # Extract all TS rows for parameter STRAIN, rename TSVAL to STRAIN_TS 
-    # - remove duplicates
-    # - limit to the set of studies for input set of animals
-    tsSTRAINall<-merge(unique(TS[TSPARMCD == 'STRAIN', .(STUDYID,STRAIN_TS=toupper(trimws(TSVAL)))]), animalSPECIESStudies, by='STUDYID')
-    # Add studies with no TS parameter STRAIN from the set of studies for input set of animals
-    tsSTRAINall<-
-      rbindlist(list(tsSTRAINall,
-                     fsetdiff(animalSPECIESStudies, 
-                              tsSTRAINall[,.(STUDYID)])[!is.na(STUDYID),.(STUDYID, STRAIN_TS=as.character(NA))]),
-                use.names=TRUE, fill=TRUE)
-    
-    # Add variables with 
-    #  - count of number of distinct STRAIN per study
-    #  - concatenation of all strain per study (for studies with one strain this is equal to STRAIN_TS)
-    tsSTRAINall[, `:=` (ALL_STRAIN = unique(STRAIN_TS), NUM_STRAIN_TS = .N), by = STUDYID]
-    tsSTRAINall[,`:=`(ALL_STRAIN_TS = c(.SD)), by = STUDYID, .SDcols='STRAIN_TS']
-    
-    # JOin the set of studies/strain with DM to get all animal level STRAIN  limited to the found set of animals at species level
-    #  - the set will contain STUDYID/USUBJID duplicates for studies with multiple STRAIN registered in TS               
-    animalSTRAINall<-               
-      merge(merge(tsSTRAINall,
-                  animalList[,.(STUDYID, USUBJID)],
-                  by='STUDYID'),
-            merge(foundAnimalsSPECIES[,.(STUDYID,USUBJID)], 
-                  DM[,.(STUDYID, USUBJID, SETCD, STRAIN_DM=ifelse(STRAIN=="",as.character(NA),toupper(trimws(STRAIN))))],
-                  by=c('STUDYID','USUBJID')),
-            by=c('STUDYID','USUBJID'))
-    
-    # Join the list of studies/animals/strain with TX to get all set level STRAIN
-    #  - add variable STRAIN with the first non-empty strain value from DM, TX or TS
-    #  - add variable with count of unique USUBJID per study (there is expected to be one usubjid per studyid per TSPARMCD 'STRAIN' )
-    animalSTRAINall<-
-      merge(animalSTRAINall, 
-            unique(TX[TXPARMCD=='STRAIN',.(STUDYID,SETCD,STRAIN_TX=toupper(trimws(TXVAL)))]), 
-            by=c('STUDYID','SETCD'), all.x=TRUE )[,`:=` (STRAIN=fcoalesce(as.character(STRAIN_DM),as.character(STRAIN_TX),as.character(STRAIN_TS)))]
-    animalSTRAINall[, `:=` (NUM_ANIMALS = .N), by = .(STUDYID, USUBJID)]
-    
-    # Identify uncertain animals - add variable UNCERTAIN_MGS
-    animalSTRAINall[,`:=` (UNCERTAIN_MSG=mapply(identifyUncertainSTRAIN, STRAIN, STRAIN_TS, STRAIN_TX, STRAIN_DM,  ALL_STRAIN_TS, NUM_STRAIN_TS, NUM_ANIMALS ))]
-    
-    # Extract unique set of animals and related strain - exclude uncertain animals
-    animalSTRAINallUniq<-unique(animalSTRAINall[is.na(UNCERTAIN_MSG), .(STUDYID, USUBJID, STRAIN)])
-    
-    # Extract animals match 
-    foundAnimalsSTRAIN<-unique(animalSTRAINallUniq[STRAIN %in% strainFilter, .(STUDYID, USUBJID, STRAIN)])
-    
+  # Add variables with 
+  #  - count of number of distinct STRAINS per study
+  #  - concatenation of all species per study (for studies with one species, this is equal to SPECIES_TS)
+  studyStrain <-
+    unique(unique(animalStrainAll[, .(STUDYID, STRAIN_TS)])[
+      , `:=` (NUM_STRAIN_TS = .N), by = STUDYID][
+        , `:=` (ALL_STRAIN_TS = c(.SD)), by = STUDYID, .SDcols='STRAIN_TS'][
+          , .(STUDYID,NUM_STRAIN_TS,ALL_STRAIN_TS )], by='STUDYID')
+  # Add calculated columns to the list of animals
+  animalStrainAll <- merge(animalStrainAll, 
+                            studyStrain, 
+                            by = 'STUDYID')
+  
+  # Add variable with count of unique USUBJID per study (is expected to be one usubjid per studyid per TSPARMCD 'STRAIN' )
+  animalStrainAll[, `:=` (NUM_ANIMALS = .N), by = .(STUDYID, USUBJID)]
+  
+  
+  # Identify uncertain animals - add variable STRAIN_UNCERTAIN_MSG
+  # - remove temp columns used in the processing and remove duplicates for for multiple STRAIN at study level
+  animalStrain <- 
+    unique(
+      animalStrainAll[,`:=` (STRAIN_UNCERTAIN_MSG=mapply(identifyUncertainSTRAIN, 
+                                                           STRAIN, 
+                                                           STRAIN_TS, 
+                                                           STRAIN_TX,
+                                                           STRAIN_DM,  
+                                                           ALL_STRAIN_TS,
+                                                           NUM_STRAIN_TS, 
+                                                           NUM_ANIMALS ))][, `:=` (STRAIN_TS = NULL,
+                                                                                   STRAIN_TX = NULL,
+                                                                                   STRAIN_DM = NULL,
+                                                                                   ALL_STRAIN_TS = NULL,
+                                                                                   NUM_STRAIN_TS = NULL,
+                                                                                   NUM_ANIMALS = NULL)], 
+      by=c('STUDYID', 'USUBJID'))
+  
+  if (InclStrainFilter) {
+    # Extract animals matching the strain filter - exclude uncertain rows
+     foundAnimalSpeciesStrain <- animalStrain[STRAIN %in% strainFilter & is.na(STRAIN_UNCERTAIN_MSG),
+                                             .(STUDYID, USUBJID, SPECIES, STRAIN)]
+  
     if (exclusively) {
       # Find studies with animals having other STRAIN than the requested
-      foundAnimalsSTRAIN<-
-        merge(foundAnimalsSTRAIN,
+      foundAnimalSpeciesStrain <-
+        merge(foundAnimalSpeciesStrain,
               # Set of studies to keep:
-              fsetdiff(unique(foundAnimalsSTRAIN[,.(STUDYID)]),
+              fsetdiff(unique(foundAnimalSpeciesStrain[,.(STUDYID)]),
                        # Set of studies (included in the found set of animals with matching STRAIN values) with possible 
                        # STRAIN values not included in the strainFilter:  
                        unique(fsetdiff(merge(# Set of possible STRAIN values per study in the input set of animals:
-                                             unique(animalSTRAINallUniq[,.(STUDYID, STRAIN)]),
-                                             unique(foundAnimalsSTRAIN[,.(STUDYID)]), by='STUDYID'),
-                                       unique(foundAnimalsSTRAIN[,.(STUDYID, STRAIN)]))[,.(STUDYID)])),
+                                             unique(animalStrain[,.(STUDYID, STRAIN)]),
+                                             unique(foundAnimalSpeciesStrain[,.(STUDYID)]), by='STUDYID'),
+                              unique(foundAnimalSpeciesStrain[,.(STUDYID, STRAIN)]))[,.(STUDYID)])),
               by='STUDYID')
       
     }
+  } else 
+     # Save all found species/strain rows - drop the STRAIN_UNCERTAIN_MSG column
+     foundAnimalSpeciesStrain <- animalStrain
   
-    # Merge set of animals with the set of animals extracted at SPECIES level to get the SPECIES values
-    foundAnimals<-merge(foundAnimalsSPECIES,
-                        foundAnimalsSTRAIN,
-                        by=c('STUDYID','USUBJID'))
+  if (inclUncertain) {
+    # Try to populate the uncertain animal species rows with a strain value
+    # - if only a single strain value has been identified for an animal in the 
+    #   joined data extracted from the database, this value is assigned 
+    animalSpeciesUncertain <- 
+      merge(animalSpecies[!is.na(SPECIES_UNCERTAIN_MSG)], 
+            unique(animalSpeciesStrainAll[,.(STUDYID, USUBJID, STRAIN)])[
+                                              , `:=` (NUM_STRAIN = .N), by = c('STUDYID','USUBJID')][
+                                              NUM_STRAIN == 1, .(STUDYID, USUBJID, STRAIN)],
+            by = c('STUDYID','USUBJID'))
     
-    if (inclUncertain) {
-        # Extract and merge the sets of uncertain animals identified at species and/or strain level
-        uncertainAnimals<-
-          merge(unique(animalSPECIESall[!is.na(UNCERTAIN_MSG), .(STUDYID, USUBJID, SPECIES, UNCERTAIN_MSG)]),
-                unique(animalSTRAINall[!is.na(UNCERTAIN_MSG), .(STUDYID, USUBJID, STRAIN, UNCERTAIN_MSG)]),
-                by=c('STUDYID','USUBJID'), all = TRUE)
-        #  Merge the UNCERTAIN_MSG from each tables into one column
-        #  - non-empty messages are separated by ' & '
-        #  - The function name is included as first part of the combined texts
-        #  - exclude the original UNCERTAIN_MSG columns after the merge  
-        uncertainAnimals[,`:=` (UNCERTAIN_MSG = ifelse(!is.na(UNCERTAIN_MSG.x) & !is.na(UNCERTAIN_MSG.y), 
-                                                       paste(UNCERTAIN_MSG.y, UNCERTAIN_MSG.x, sep=' & '),
-                                                       fcoalesce(UNCERTAIN_MSG.x, UNCERTAIN_MSG.y)))][, `:=` (UNCERTAIN_MSG.x=NULL,UNCERTAIN_MSG.y=NULL)]
-        # Add the set of uncertain animals to the set of found animals
-        foundAnimals<-rbindlist(list(foundAnimals,uncertainAnimals), use.names=TRUE, fill=TRUE)
-    }
+    # Add uncertain animal species rows to found set of animals
+    foundAnimalSpeciesStrain <-
+      rbindlist(list( foundAnimalSpeciesStrain, animalSpeciesUncertain),
+                use.names=TRUE, fill=TRUE )
+    
+     if (InclStrainFilter) { 
+       # Add uncertain animal species rows to found set of animals
+       foundAnimalSpeciesStrain <-
+         rbindlist(list( foundAnimalSpeciesStrain, animalStrain[!is.na(STRAIN_UNCERTAIN_MSG)]),
+                   use.names=TRUE, fill=TRUE )
+       # merge content of SPECIES_UNCERTAIN_MSG and STRAIN_UNCERTAIN_MSG into UNCERTAIN_MSG
+       #  - non-empty messages are separated by ' & '
+       #  - A function prefix is included as first part of the non-empty combined texts
+       #  - exclude the xx_UNCERTAIN_MSG columns after the merge  
+       funcPrefix <- 'FilterSpeciesStrain: '
+       foundAnimalSpeciesStrain <- 
+         foundAnimalSpeciesStrain[,`:=` (UNCERTAIN_MSG = ifelse(!is.na(SPECIES_UNCERTAIN_MSG) & !is.na(STRAIN_UNCERTAIN_MSG), 
+                                                                paste0(funcPrefix, paste(STRAIN_UNCERTAIN_MSG, SPECIES_UNCERTAIN_MSG, sep=' & ')),
+                                                                ifelse(!is.na(SPECIES_UNCERTAIN_MSG),
+                                                                       paste0(funcPrefix, SPECIES_UNCERTAIN_MSG),
+                                                                       ifelse(!is.na(STRAIN_UNCERTAIN_MSG),
+                                                                              paste0(funcPrefix, STRAIN_UNCERTAIN_MSG),
+                                                                              as.character(NA)))))][
+                                  , `:=` (SPECIES_UNCERTAIN_MSG=NULL, STRAIN_UNCERTAIN_MSG=NULL)]
+     } 
+  } else {
+    if (!InclStrainFilter)
+      # Remove the irrelevent STRAIN_UNCERTAIN_MSG column
+      foundAnimalSpeciesStrain[, `:=` (STRAIN_UNCERTAIN_MSG=NULL)]
   }
+  
   
   ##################################################################################################################
   
@@ -366,18 +432,17 @@ FilterAnimalsSpeciesStrain<-function(animalList=NULL, speciesFilter=NULL, strain
   
   # Merge the set of extracted animals with the input set of animals to keep
   # any additional columns from the input table 
-  foundAnimals<-merge(foundAnimals, animalList, by=c('STUDYID', 'USUBJID'))
+  foundAnimals<-merge(foundAnimalSpeciesStrain, animalList, by=c('STUDYID', 'USUBJID'))
   if (inclUncertain)
     if ("UNCERTAIN_MSG.y" %in% names(foundAnimals)) {
       # An UNCERTAIN_MSG column is included in both input and found list of animals
       #  - merge the UNCERTAIN_MSG from each of the merged tables into one column
       #  - non-empty messages are separated by '|'
       #  - exclude the original UNCERTAIN_MSG columns after the merge  
-      foundAnimals<-foundAnimals[,`:=` (UNCERTAIN_MSG=ifelse(!is.na(UNCERTAIN_MSG.x) & !is.na(UNCERTAIN_MSG.y), 
-                                                              paste(UNCERTAIN_MSG.y, paste0('FilterAnimalsSpeciesStrain: ',UNCERTAIN_MSG.x), sep='|'),
-                                                              fcoalesce(ifelse(!is.na(UNCERTAIN_MSG.x), 
-                                                                               paste0('FilterAnimalsSpeciesStrain: ',UNCERTAIN_MSG.x), as.character(NA) ), 
-                                                                        UNCERTAIN_MSG.y)))][, `:=` (UNCERTAIN_MSG.x=NULL,UNCERTAIN_MSG.y=NULL)]
+      foundAnimals<-foundAnimals[,`:=` (UNCERTAIN_MSG=ifelse(!is.na(UNCERTAIN_MSG.x) & ! is.na(UNCERTAIN_MSG.y), 
+                                                              paste(UNCERTAIN_MSG.y, UNCERTAIN_MSG.x, sep='|'),
+                                                              fcoalesce(UNCERTAIN_MSG.x, UNCERTAIN_MSG.y)))][
+                                 , `:=` (UNCERTAIN_MSG.x=NULL,UNCERTAIN_MSG.y=NULL)]
   }
   # Return list of found animals  
   return(foundAnimals)

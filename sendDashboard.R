@@ -25,7 +25,6 @@ setwd(getSrcDirectory(dummyuseCaseQuestionMiFindings))
 # Include the SEND functions (to be changed to inclusion of SEND package)
 source("initSENDFunctions.R")
 
-
 source('sendDB.R')
 source('controlFiltering.R')
 
@@ -51,29 +50,29 @@ availablePhases <- c('Screening', 'Treatment', 'Recovery')
 
 #### Domains-specific filtering selections ####
 
-# For the MI domain, allow filtering 
-# by organs available in the SEND DB.  
-
-availableOrgans <- GetUniqueOrgans()
-availableOrgans <- as.list(setNames(availableOrgans, availableOrgans))
-
-# The LB domain is of the larger
-# domains.  This is currently 
-# converting all LBTESTCD to a 
-# singular unit to show distributions.
-# TODO: Find a better way to do this
-# without having to menaully enter
-# unit conversions.  
-
-availableLBTESTCD <- GetUniqueLBTESTCD('CLINICAL CHEMISTRY')
-availableLBTESTCD <- as.list(setNames(availableLBTESTCD, availableLBTESTCD))
-
-liverEnzymes <- list(
-  ALT='ALT',
-  BILI='BILI',
-  AST='AST',
-  ALP='ALP'
-)
+# # For the MI domain, allow filtering 
+# # by organs available in the SEND DB.  
+# 
+# availableOrgans <- GetUniqueOrgans()
+# availableOrgans <- as.list(setNames(availableOrgans, availableOrgans))
+# 
+# # The LB domain is of the larger
+# # domains.  This is currently 
+# # converting all LBTESTCD to a 
+# # singular unit to show distributions.
+# # TODO: Find a better way to do this
+# # without having to menaully enter
+# # unit conversions.  
+# 
+# availableLBTESTCD <- GetUniqueLBTESTCD('CLINICAL CHEMISTRY')
+# availableLBTESTCD <- as.list(setNames(availableLBTESTCD, availableLBTESTCD))
+# 
+# liverEnzymes <- list(
+#   ALT='ALT',
+#   BILI='BILI',
+#   AST='AST',
+#   ALP='ALP'
+# )
 
 #### UI ####
 
@@ -188,19 +187,23 @@ ui <- dashboardPage(
                # The id lets us use input$tabset1 on the server to find the current tab
                id = "findingsTab",
                tabPanel('ANIMALS',
-                        fluidRow(box(title = "Filtered control animals", DT::dataTableOutput("animals")))),
-               tabPanel("MI", fluidRow(box(selectInput("MISPEC",
-                                                       "Select MISPEC:",
-                                                       availableOrgans, selected='KIDNEY')),
-                                       box(title = "Organ Findings", DT::dataTableOutput("findingsTable"))) ),
-               tabPanel("LB", fluidRow(box(selectInput("LBTESTCD",
-                                                       "Select LBTESTCD:",
-                                                       availableLBTESTCD),
-                                           radioButtons("dist", "Distribution type:",
-                                                        c("Normal" = "norm",
-                                                          "Log-normal" = "lnorm"))
-               ),
-               box(title = "LBTESTCD", plotOutput("labTestHist"))) )
+                        fluidRow(box(title = "Filtered control animals", DT::dataTableOutput("animals"))))
+               #,
+               #tabPanel('MI',
+               #          fluidRow(box(title = "Filtered MI findings", DT::dataTableOutput("mi")))),
+               # ,
+               # tabPanel("MI", fluidRow(box(selectInput("MISPEC",
+               #                                         "Select MISPEC:",
+               #                                         availableOrgans, selected='KIDNEY')),
+               #                         box(title = "Organ Findings", DT::dataTableOutput("findingsTable"))) ),
+               # tabPanel("LB", fluidRow(box(selectInput("LBTESTCD",
+               #                                         "Select LBTESTCD:",
+               #                                         availableLBTESTCD),
+               #                             radioButtons("dist", "Distribution type:",
+               #                                          c("Normal" = "norm",
+               #                                            "Log-normal" = "lnorm"))
+               # ),
+               # box(title = "LBTESTCD", plotOutput("labTestHist"))) )
              )
       )
     )
@@ -221,7 +224,7 @@ ui <- dashboardPage(
 # in controlFiltering.R. 
 
 server <- function(input, output, session) {
-  
+
   # This is the logic for changing 
   # the STRAIN based ON changes SPECIES
   observeEvent(input$SPECIES, {
@@ -248,9 +251,11 @@ server <- function(input, output, session) {
                               input$INCL_UNCERTAIN) 
   })
   
-  # findings <- reactive({ MiFindings(animalList(), input$MISPEC) })
-  
   output$animals <- DT::renderDataTable(animalList())
+  
+  #findings <- reactive({ getMiFindings(animalList()) })
+  
+  #output$mi <- DT::renderDataTable(findings())
   
   ########################### MI TAB #######################################
   
@@ -264,14 +269,14 @@ server <- function(input, output, session) {
   # the function called MiFindings()
   # defined in sendDB.R
   
-  output$findingsTable <- DT::renderDataTable({
-    
-    req(input$STRAIN)
-    findings <- MiFindings(animalList(), input$MISPEC)
-    
-    return(findings)
-    
-  })
+  # output$findingsTable <- DT::renderDataTable({
+  #   
+  #   req(input$STRAIN)
+  #   findings <- MiFindings(animalList(), input$MISPEC)
+  #   
+  #   return(findings)
+  #   
+  # })
   
   
   # TODO: Implement function to download 
@@ -307,118 +312,118 @@ server <- function(input, output, session) {
   # of dsiplaying as normal
   # or log-normal distribution.
   
-  output$labTestHist <- renderPlot({
-    
-    # LiverFindings() gets 
-    # lab test results for 
-    # a user-defined LBTESTCD
-    
-    labResults <- LiverFindings(animalList(), input$LBTESTCD)
-    
-    
-    # change the distbution 
-    # function depending on 
-    # user input
-    
-    if (input$dist == 'norm') {
-      labResults$distribution <- labResults$LBSTRESC_TRANS
-      dist <- MASS::fitdistr(labResults$distribution, 'normal')
-      fun <- dnorm
-    } else if (input$dist == 'lnorm') {
-      labResults$distribution <- log(labResults$LBSTRESC_TRANS + 1) 
-      dist <- MASS::fitdistr(labResults$distribution, 'lognormal')
-      fun <- dlnorm
-    }
-    
-    # plot the probability 
-    # distribution and 
-    # the pdf
-    
-    ggplot(labResults) +  
-      geom_histogram(aes(x = distribution, y = ..density..),
-                     fill = "blue",  
-                     colour = "grey", alpha=0.6) + 
-      stat_function(fun = fun, 
-                    args = list(mean = dist$estimate[1], sd = dist$estimate[2], log = F), 
-                    color="grey", lwd=1, alpha=0.6)
-    
-  })
-  
-  
-  # Two panels not yet
-  # ready.  BW Tab simply
-  # diplays the average 
-  # bodyweight through 
-  # study length.  eDISH
-  # was meant to diplsay
-  # user selected x and y 
-  # axis as liver enzyme
-  # responses. 
-  
-  #################### BW Tab ###############################
-  
-  output$bodyWeightTime <- renderPlot({
-    
-    animalList <- GetAnimalList(input$SDESIGN, input$SPECIES)
-    bw <- BodyWeight(animalList)
-    
-    
-    bw %>%
-      group_by(USUBJID) %>%
-      ggplot( aes(x=days, y=BWSTRESN,  color='black')) +
-      geom_line()
-    
-  })
-  
-  ################## eDish #############################
-  
-  studyAnimalList <- reactive({
-    studyInfo <- GetStudyTS(input$STUDYID)
-    
-    design <- toupper(studyInfo[studyInfo$TSPARMCD == 'SDESIGN',]$TSVAL)
-    species <- toupper(studyInfo[studyInfo$TSPARMCD == 'SPECIES',]$TSVAL)
-    
-    GetAnimalList(design, species)
-  })
-  
-  
-  
-  output$eDish <- renderPlot({
-    
-    
-    speciesControls1 <- studyAnimalList()
-    
-    xTest <- LiverFindings(speciesControls1, input$x_axis_LBTESTCD)
-    print(xTest)
-    yTest <- LiverFindings(speciesControls1, input$y_axis_LBTESTCD)
-    print(yTest)
-    data  <- unique(merge(xTest, yTest, by='USUBJID'))
-    
-    xAvg <- mean(data$LBSTRESC_TRANS.x)
-    yAvg <- mean(data$LBSTRESC_TRANS.y)
-    
-    data$LBSTRESC_TRANS.x <- data$LBSTRESC_TRANS.x / xAvg
-    data$LBSTRESC_TRANS.y <- data$LBSTRESC_TRANS.y / yAvg
-    
-    thisStudyAnimals <- GetAnimalGroupsStudy(input$STUDYID)
-    
-    studyx <- LiverFindings(thisStudyAnimals, input$x_axis_LBTESTCD)
-    print(studyx)
-    studyy <- LiverFindings(thisStudyAnimals, input$y_axis_LBTESTCD)
-    
-    
-    thisStudyAnimals <- merge(thisStudyAnimals, studyx, by='USUBJID')
-    thisStudyAnimals <- unique(merge(thisStudyAnimals, studyy, by='USUBJID'))
-    
-    
-    ggplot(data) +
-      geom_point(aes(x=LBSTRESC_TRANS.x, y=LBSTRESC_TRANS.y), color=rgb(0, 0, 0, 0.4), size=4) +
-      xlab(input$x_axis_LBTESTCD) + ylab(input$y_axis_LBTESTCD) + 
-      geom_point(data=thisStudyAnimals, mapping=aes(x=LBSTRESC_TRANS.x / xAvg, 
-                                                    y=LBSTRESC_TRANS.y / yAvg, 
-                                                    color=SET), size=4)
-    
-  })
+  # output$labTestHist <- renderPlot({
+  #   
+  #   # LiverFindings() gets 
+  #   # lab test results for 
+  #   # a user-defined LBTESTCD
+  #   
+  #   labResults <- LiverFindings(animalList(), input$LBTESTCD)
+  #   
+  #   
+  #   # change the distbution 
+  #   # function depending on 
+  #   # user input
+  #   
+  #   if (input$dist == 'norm') {
+  #     labResults$distribution <- labResults$LBSTRESC_TRANS
+  #     dist <- MASS::fitdistr(labResults$distribution, 'normal')
+  #     fun <- dnorm
+  #   } else if (input$dist == 'lnorm') {
+  #     labResults$distribution <- log(labResults$LBSTRESC_TRANS + 1) 
+  #     dist <- MASS::fitdistr(labResults$distribution, 'lognormal')
+  #     fun <- dlnorm
+  #   }
+  #   
+  #   # plot the probability 
+  #   # distribution and 
+  #   # the pdf
+  #   
+  #   ggplot(labResults) +  
+  #     geom_histogram(aes(x = distribution, y = ..density..),
+  #                    fill = "blue",  
+  #                    colour = "grey", alpha=0.6) + 
+  #     stat_function(fun = fun, 
+  #                   args = list(mean = dist$estimate[1], sd = dist$estimate[2], log = F), 
+  #                   color="grey", lwd=1, alpha=0.6)
+  #   
+  # })
+  # 
+  # 
+  # # Two panels not yet
+  # # ready.  BW Tab simply
+  # # diplays the average 
+  # # bodyweight through 
+  # # study length.  eDISH
+  # # was meant to diplsay
+  # # user selected x and y 
+  # # axis as liver enzyme
+  # # responses. 
+  # 
+  # #################### BW Tab ###############################
+  # 
+  # output$bodyWeightTime <- renderPlot({
+  #   
+  #   animalList <- GetAnimalList(input$SDESIGN, input$SPECIES)
+  #   bw <- BodyWeight(animalList)
+  #   
+  #   
+  #   bw %>%
+  #     group_by(USUBJID) %>%
+  #     ggplot( aes(x=days, y=BWSTRESN,  color='black')) +
+  #     geom_line()
+  #   
+  # })
+  # 
+  # ################## eDish #############################
+  # 
+  # studyAnimalList <- reactive({
+  #   studyInfo <- GetStudyTS(input$STUDYID)
+  #   
+  #   design <- toupper(studyInfo[studyInfo$TSPARMCD == 'SDESIGN',]$TSVAL)
+  #   species <- toupper(studyInfo[studyInfo$TSPARMCD == 'SPECIES',]$TSVAL)
+  #   
+  #   GetAnimalList(design, species)
+  # })
+  # 
+  # 
+  # 
+  # output$eDish <- renderPlot({
+  #   
+  #   
+  #   speciesControls1 <- studyAnimalList()
+  #   
+  #   xTest <- LiverFindings(speciesControls1, input$x_axis_LBTESTCD)
+  #   print(xTest)
+  #   yTest <- LiverFindings(speciesControls1, input$y_axis_LBTESTCD)
+  #   print(yTest)
+  #   data  <- unique(merge(xTest, yTest, by='USUBJID'))
+  #   
+  #   xAvg <- mean(data$LBSTRESC_TRANS.x)
+  #   yAvg <- mean(data$LBSTRESC_TRANS.y)
+  #   
+  #   data$LBSTRESC_TRANS.x <- data$LBSTRESC_TRANS.x / xAvg
+  #   data$LBSTRESC_TRANS.y <- data$LBSTRESC_TRANS.y / yAvg
+  #   
+  #   thisStudyAnimals <- GetAnimalGroupsStudy(input$STUDYID)
+  #   
+  #   studyx <- LiverFindings(thisStudyAnimals, input$x_axis_LBTESTCD)
+  #   print(studyx)
+  #   studyy <- LiverFindings(thisStudyAnimals, input$y_axis_LBTESTCD)
+  #   
+  #   
+  #   thisStudyAnimals <- merge(thisStudyAnimals, studyx, by='USUBJID')
+  #   thisStudyAnimals <- unique(merge(thisStudyAnimals, studyy, by='USUBJID'))
+  #   
+  #   
+  #   ggplot(data) +
+  #     geom_point(aes(x=LBSTRESC_TRANS.x, y=LBSTRESC_TRANS.y), color=rgb(0, 0, 0, 0.4), size=4) +
+  #     xlab(input$x_axis_LBTESTCD) + ylab(input$y_axis_LBTESTCD) + 
+  #     geom_point(data=thisStudyAnimals, mapping=aes(x=LBSTRESC_TRANS.x / xAvg, 
+  #                                                   y=LBSTRESC_TRANS.y / yAvg, 
+  #                                                   color=SET), size=4)
+  #   
+  # })
   
   # CLose connection to database at end of execution
   onSessionEnded(function() {

@@ -121,17 +121,27 @@ FilterAnimalListRoute<-function(animalList=NULL, routeFilter=NULL, inclUncertain
   # List of studyid values included in the input table of animals
   animalStudies<-unique(animalList[,.(STUDYID)])
   
-  # import domain which may be missing in workspace
+  # import TS domain if missing in workspace
   if (!exists('TS')) {
     importSENDDomains(c('TS'))
   }
-  if (!exists('EX')) {
-    importSENDDomains(c('EX'), animalStudies)
-  }
-  if (!exists('POOLDEF')) {
-    importSENDDomains(c('POOLDEF'), animalStudies)
-  }
   
+  # Import from POOLDEF set or rows for relevant study
+  POOLDEF <- genericQuery("select * from pooldef where studyid in (:1)",
+                          animalStudies)
+  # Import from EX relevant subset of rows - i.e rows for all potential 
+  # control animals in list of relevant studies - and columns
+  EX <- genericQuery("select ex.STUDYID, ex.USUBJID, POOLID, EXROUTE 
+                       from ex
+                       join dm
+                         on dm.studyid = ex.studyid
+                        and dm.usubjid = ex.usubjid
+                       join tx
+                         on tx.studyid in (:1)
+                        and tx.txparmcd = 'TCNTRL'
+                        and dm.studyid = tx.studyid
+                        and dm.setcd = tx.setcd", 
+                     animalStudies)
   
   # Get values of code list ROUTE from CDISC CT
   ctROUTE<-getCTCodListValues("ROUTE")

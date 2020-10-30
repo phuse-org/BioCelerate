@@ -188,10 +188,6 @@ GetFilteredControlAnimals <- function(pFromDTC,
     # Copy to a table used as input/output in the animal filtering tables
     controlAnimals <<- copy(controlAnimalsAll)
     
-    # If EX exists in workspace - delete it, to ensure correct set output 
-    # animals from the filtering process
-    if (exists("EX")) rm(EX)
-    
     print('filterAnimalsSex')
     if (pSex != '')
       # Limit to set of animals to relevant sex

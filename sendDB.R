@@ -30,11 +30,22 @@ if (is.null(iniDbType) | is.null(iniDbPath) | is.null(iniCtFile))
   stop(sprintf('All of these parameters in %s/%s must have assigned a value: dbType,dbPath, ctFile', 
                getwd(),iniParmsFile))
 
-# Execute the SEND function initiation
+if (unname(unlist(GvalidDbTypes[db_type == iniDbType,.(req_credentials)]))) {
+  # Login credentials required for database
+  # - get user name and password
+  # TO BE CHANGED TO A METHOD INDEPENDANT OF rstudioapi
+  .uid <- rstudioapi::askForPassword(sprintf("Database user (in %s)", iniDbPath))
+  .pwd <- rstudioapi::askForPassword("Password")
+} else {
+  # No credentials reqired
+  .uid <- NULL
+  .pwd <- NULL
+}
+# Execute the SEND function initiation - connect to database
 initEnvironment(dbType = iniDbType, 
                 dbPath = iniDbPath, 
-                ##!! To do: add handling of getting username/password for relevant database types..
-                # dbUser = <user>, dbPwd= <pwd>, 
+                dbUser = .uid, 
+                dbPwd= .pwd, 
                 dbSchema = iniDbSchema,
                 ctFile = iniCtFile)
 
@@ -88,6 +99,12 @@ GetAnimalList <- function(design, species) {
   animals <- merge(studies, controls, by='STUDYID')
   return(animals)
 }
+
+
+getMiFindings <- function(animalList) {
+  return(ExtractSubjData(domain     = 'MI', animalList = animalList))
+}
+
 
 MiFindings <- function(animalList, mispec) {
   # given a set of USUBJIDs and and target organ
@@ -208,8 +225,7 @@ getMinStudyStartDate<-function() {
 # series of functions to query the 
 # database to find unique elements. 
 GetUniqueDesign <- function() {
-  uniqueDesigns <- toupper(genericQuery('SELECT DISTINCT TSVAL FROM TS WHERE upper(TSPARMCD) = "SDESIGN"')$TSVAL)
-  return(unique(uniqueDesigns))
+  return(genericQuery("SELECT DISTINCT upper(TSVAL) as TSVAL FROM TS WHERE upper(TSPARMCD) = 'SDESIGN'")$TSVAL)
 }
 
 
@@ -249,7 +265,7 @@ GetUniqueStrains <- function(species) {
                             join ts ts2
                               on upper(ts2.tsparmcd) = 'SPECIES'
                              and upper(ts2.tsval) in (:1)
-                             and ts1.tsgrpid = ts2.tsgrpid
+                             and coalesce(ts1.tsgrpid,'x') = coalesce(ts2.tsgrpid,'x')
                              and ts1.studyid = ts2.studyid
                            where upper(ts1.tsparmcd) = 'STRAIN'
                           union
@@ -288,7 +304,7 @@ GetUniqueOrgans <- function() {
 }
 
 GetUniqueLBTESTCD <- function(cat) {
-  uniqueLBTESTCD <- toupper(genericQuery('SELECT DISTINCT LBTESTCD FROM LB WHERE LBCAT = ?', c(cat))$LBTESTCD)
+  uniqueLBTESTCD <- toupper(genericQuery('SELECT DISTINCT LBTESTCD FROM LB WHERE LBCAT = :1', c(cat))$LBTESTCD)
   return(unique(uniqueLBTESTCD))
 }
 
@@ -307,7 +323,7 @@ GetAnimalGroupsStudy <- function(studyid) {
                                TX  
                                INNER JOIN DM 
                                on DM.SETCD = TX.SETCD AND DM.STUDYID = TX.STUDYID   
-                               WHERE DM.STUDYID = ?', c(studyid))
+                               WHERE DM.STUDYID = :1', c(studyid))
   return(studyAnimals)
 }
 
