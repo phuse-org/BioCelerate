@@ -3,42 +3,6 @@
 # for calling all the functions 
 # available in the SEND package
 
-doFilterAnimalsSpeciesStrain <- function(controlAnimals, 
-                                         pSpecies, 
-                                         pStrain, 
-                                         pInclUncertain) {
-  
-  execFilter <- function(species) {
-    # Extract list of select strains for current species 
-    # - remove prefixed species value
-    strain <- str_replace(pStrain[str_detect(pStrain, paste0(species,': '))], 
-                          paste0(species,': '),'')
-    if (length(strain) == 0) strain <- NULL
-    
-    # Execute species/strain filtering for current species/strain(s)
-    return(
-      FilterAnimalsSpeciesStrain(animalList    = controlAnimals, 
-                                 speciesFilter = species, 
-                                 strainFilter  = strain, 
-                                 inclUncertain = pInclUncertain))
-  }
-  
-  if (length(pSpecies) == 1) 
-    # One species selected - just execute  the filtering of the species/strain
-    # and return result
-    return(
-      FilterAnimalsSpeciesStrain(animalList    = controlAnimals, 
-                                 speciesFilter = pSpecies, 
-                                 strainFilter  = pStrain, 
-                                 inclUncertain = pInclUncertain))
-  else 
-    # Multiple species selected - execute filtering for species/strain per species
-    # - combine all outputs into one table and return
-    return(rbindlist(lapply(pSpecies, function(species) {execFilter(species)}), 
-                     use.names=TRUE, fill=TRUE))
-}
-
-
 GetFilteredControlAnimals <- function(pFromDTC, 
                                       pToDTC, 
                                       pStudyDesign, 
@@ -197,10 +161,10 @@ GetFilteredControlAnimals <- function(pFromDTC,
     print('FilterAnimalsSpeciesStrain')
     if (!is.null(pSpecies))
       # Limit to set of animals to relevant species/strain(s)
-      controlAnimals <<- doFilterAnimalsSpeciesStrain(controlAnimals, 
-                                                      pSpecies, 
-                                                      pStrain, 
-                                                      pInclUncertain)
+      controlAnimals <<- FilterAnimalsSpeciesStrain(animalList    = controlAnimals, 
+                                                    speciesFilter = pSpecies, 
+                                                    strainFilter  = pStrain, 
+                                                    inclUncertain = pInclUncertain)
     
     print('FilterAnimalListRoute')
     if (!is.null(pRoute))

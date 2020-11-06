@@ -51,14 +51,31 @@ ExtractSubjData<-function(domain=NULL, animalList=NULL) {
     stop('Input parameter animalList must have assigned a data table ')
   } 
   
-  if (!exists('POOLDEF')) {
-    importSENDDomains('POOLDEF', unique(animalList[,.(STUDYID)]))
-  }
+  # List of relevant studyid values
+  studyList <- unique(animalList[,.(STUDYID)])
+  # if (!exists('POOLDEF')) {
+  #   importSENDDomains('POOLDEF', unique(animalList[,.(STUDYID)]))
+  # }
   domain<-toupper(trimws(domain))
-  if (!exists(domain)) {
-    importSENDDomains(domain, unique(animalList[,.(STUDYID)]))
-  }
-  domainDT<-get(domain)
+  # if (!exists(domain)) {
+  #   importSENDDomains(domain, unique(animalList[,.(STUDYID)]))
+  # }
+  # domainDT<-get(domain)
+  # Extract subset of findings rows from db for relevant studies
+  # - include only rows related to potential control animals
+  domainDT <- genericQuery(sprintf(
+                              "select d.*
+                               from %s d
+                               join (select distinct studyid, setcd
+                                       from tx
+                                      where txparmcd = 'TCNTRL'
+                                        and studyid in (:1)) tx
+                                 on tx.studyid = d.studyid
+                               join dm
+                                 on dm.studyid = tx.studyid
+                                and dm.setcd = tx.setcd
+                                and dm.usubjid = d.usubjid", domain),
+                           studyList)
   
   # Extract subject level data for the input list of animals
   SubjData<-merge(domainDT[!(is.null(USUBJID) | USUBJID == '')], 
@@ -66,6 +83,22 @@ ExtractSubjData<-function(domain=NULL, animalList=NULL) {
                   by=c('STUDYID', 'USUBJID'))
   
   if ('POOLID' %in% names(domainDT)) {
+    # Extract subset of POOLDEF from db for relevant studies 
+    # - include only rows related to potential control animals
+    POOLDEF <- genericQuery("select pd.studyid  as STUDYID
+                                   ,pd.poolid   as POOLID
+                                   ,pd.usubjid  as USUBJID
+                               from pooldef pd
+                               join (select distinct studyid, setcd
+                                       from tx
+                                      where txparmcd = 'TCNTRL'
+                                        and studyid in (:1)) tx
+                                 on tx.studyid = pd.studyid
+                               join dm
+                                 on dm.studyid = tx.studyid
+                                and dm.setcd = tx.setcd
+                                and dm.usubjid = pd.usubjid",
+                            studyList)
     # Extract pool level data 
     #  - input list of animals is joined to POOLDEF to get the related POOLID values
     SubjData<-rbindlist(list(SubjData, 

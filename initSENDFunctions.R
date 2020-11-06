@@ -283,7 +283,7 @@ genericQuery_oracle<-function(queryString, queryParams=NULL) {
       stmt <- str_replace_all(queryString, 
                               regex('in \\(:(\\d+)\\)', ignore_case = TRUE), 
                               inStrReplacement)
-      print(stmt)
+      #print(stmt)
       # Ensure in the in-list is a comma separated string
       bindVarVal <- paste0(unlist(list(queryParams)), collapse=',')
     }
