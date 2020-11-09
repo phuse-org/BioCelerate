@@ -13,3 +13,7 @@ sysParameters*.R
 /shell_script
 /datasets
 /SEND_DATASETS
+/database
+sendDashboard.ini
+/ignore
+/metadata
