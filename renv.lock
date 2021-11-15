@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.0.3",
+    "Version": "4.0.0",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -99,13 +99,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "dbb5e436998a7eba5a9d682060533338"
-    },
-    "SASxport": {
-      "Package": "SASxport",
-      "Version": "1.7.0",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "e0542b7f3185bb0d1f72152755887bb1"
     },
     "askpass": {
       "Package": "askpass",
@@ -214,10 +207,10 @@
     },
     "cli": {
       "Package": "cli",
-      "Version": "2.5.0",
+      "Version": "3.1.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "a94ba44cee3ea571e813721e64184172"
+      "Hash": "66a3834e54593c89d8beefb312347e58"
     },
     "clipr": {
       "Package": "clipr",
@@ -235,10 +228,10 @@
     },
     "colorspace": {
       "Package": "colorspace",
-      "Version": "2.0-0",
+      "Version": "2.0-2",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "abea3384649ef37f60ef51ce002f3547"
+      "Hash": "6baccb763ee83c0bd313460fdb8b8a84"
     },
     "commonmark": {
       "Package": "commonmark",
@@ -480,10 +473,10 @@
     },
     "htmlwidgets": {
       "Package": "htmlwidgets",
-      "Version": "1.5.3",
+      "Version": "1.5.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6fdaa86d0700f8b3e92ee3c445a5a10d"
+      "Hash": "76147821cd3fcd8c4b04e1ef0498e7fb"
     },
     "httpuv": {
       "Package": "httpuv",
@@ -512,13 +505,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "6154ec2223172bce8162d4153cda21f7"
-    },
-    "insight": {
-      "Package": "insight",
-      "Version": "0.13.1",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "760aa931fbe6866828626d0561250554"
     },
     "isoband": {
       "Package": "isoband",
@@ -900,15 +886,15 @@
     },
     "sendigR": {
       "Package": "sendigR",
-      "Version": "0.0.0.9009",
+      "Version": "0.0.1",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
-      "RemoteRepo": "Biocelerate",
+      "RemoteRepo": "BioCelerate",
       "RemoteUsername": "phuse-org",
       "RemoteRef": "sendigR",
-      "RemoteSha": "f147a3facd6779396ded61a2415d5f3096c89253",
-      "Hash": "aaf719bb35e2cb310e438abf0034c124"
+      "RemoteSha": "aa5e9a2340638b21409748129f4b81fca26f2343",
+      "Hash": "dea59673bb0727626b530ea3e9565dd4"
     },
     "shiny": {
       "Package": "shiny",
@@ -923,13 +909,6 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "133639dc106955eee4ffb8ec73edac37"
-    },
-    "sjlabelled": {
-      "Package": "sjlabelled",
-      "Version": "1.1.7",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "b60c3daa2a30df836c12a8e903cca595"
     },
     "sourcetools": {
       "Package": "sourcetools",
