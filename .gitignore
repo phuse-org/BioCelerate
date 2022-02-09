@@ -17,3 +17,4 @@ sysParameters*.R
 sendDashboard.ini
 /ignore
 /metadata
+/cross-study/data
