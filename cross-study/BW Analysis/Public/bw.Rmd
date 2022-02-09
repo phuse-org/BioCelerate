@@ -1,0 +1,11 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+this plot is about baseline change
+
+![](BWplots/baselineChange-heatmap-bin-7.png "baselineChange-heatmap-bin-7")
+
+![](BWplots/baselineChange-heatmap-interpolate.png "baselineChange-heatmap-interpolate")
+
+![](BWplots/baselineChange-line.png "baselineChange-line")
