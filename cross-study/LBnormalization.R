@@ -7,68 +7,63 @@ library(devtools)
 library(httr)
 library(reshape2)
 library(scales)
+library(ini)
 
-# localPath <- '~/PhUSE/Git/phuse-scripts/'
-localPath <- 'C:/Users/Kevin.Snyder/OneDrive - FDA/Documents/PhUSE/BioCelerate/DataSharing/'
+# Set working directory to location of script
+homePath <- dirname(sys.calls()[[1]][[2]])
+setwd(homePath)
 
-Local <- T
+dataPaths <- read.ini('dataPaths.ini')
+
+###########################################################################################################
+# Parameter Settings:
+
+# Select Data Source (Public = phuse-scripts GitHub data; BioCelerate = TDS datasets)
+dataSource <- 'Public'
+# dataSource <- 'BioCelerate'
+
+# Select TRUE to Save Plot Figures
 savePlots <- T
-saveFolder <- 'C:/Users/Kevin.Snyder/Box Sync/Biocelerate/Cross Study Comparison Project/LB Analysis/BioCelerate/'
 
-Sex <- 'F'
+# Select Sex of Animals to Analyze
+Sex <- 'M'
 
-# Define Test
-TESTCDs <- c('ALT','AST','ALP')
-# TESTCD <- 'TERMBW'
+###########################################################################################################
 
-plotType <- 'line'
-plotType <- 'heatmap'
-
-heatmapMethod <- 'interpolate'
-# heatmapMethod <- 'bin'
-
-binSize <- 2
-
-if (Local == T) {
-  source(paste0(localPath,'contributed/Nonclinical/R/Functions/Functions.R'))
-  source(paste0(localPath,'contributed/Nonclinical/R/Functions/groupSEND.R'))
-} else {
+# Populate parameters based on dataSource selection
+if (dataSource == 'Public') {
   source_url('https://raw.githubusercontent.com/phuse-org/phuse-scripts/master/contributed/Nonclinical/R/Functions/Functions.R')
   source_url('https://raw.githubusercontent.com/phuse-org/phuse-scripts/master/contributed/Nonclinical/R/Functions/groupSEND.R')
+  
+  doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD', 'Treatment Max')
+  
+} else if (dataSource == 'BioCelerate') {
+  source('Functions/Functions.R')
+  source('Functions/groupSEND.R')
+  
+  doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD')
 }
+paths <- as.character(unlist(dataPaths[[dataSource]]))
 
-paths <- c('data/send/1-Month Dog_IDO1_Company A',
-           'data/send/1-Month Dog_IDO1_Company B',
-# paths <- c('data/send/1-Month Rat_IDO1_Company A',
-           'data/send/1-Month Rat_IDO1_Company A',
-           'data/send/1-Month Rat_IDO1_Company B')
-# paths <- c('data/send/FFU-Contribution-to-FDA',
-#            'data/send/PDS',
-#            'data/send/instem',
-#            'data/send/PointCross')
-# paths <- c('data/send/FFU-Contribution-to-FDA')
-# paths <- c('data/send/PDS')
-# paths <- c('data/send/instem')
-# paths <- c('data/send/PointCross')
+# Define Metrics
+metrics <- c('LBSTRESN',
+             'percentControl',
+             'zScore')
 
-# Define Names of Dose Ranks
-# doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD', 'Treatment Max')
-doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD')
+# Define path to write files (and create directory if necessary)
+writeDirectory <- paste0('results/', dataSource, '/', 'LBplots')
+if (!dir.exists(writeDirectory)) {
+  dir.create(writeDirectory, recursive = T)
+}
 
 for (path in paths) {
   print(path)
   
-  if (Local == T) {
-    Data <- load.xpt.files(paste0(localPath,path))
-  } else {
+  if (dataSource == 'BioCelerate') {
+    Data <- load.xpt.files(paste(homePath, path, sep = '/'))
+  } else if (dataSource == 'Public') {
     Data <- load.GitHub.xpt.files(studyDir = path)
   }
-  
-  # fill in NA VISITDY values with BWDY values
-  # index <- which(is.na(Data$lb$VISITDY))
-  # if (length(index) > 0) {
-  #   Data$lb$VISITDY[index] <- Data$lb$LBDY[index]
-  # }
   
   # remove negative VISITDY values
   removeIndex <- which(Data$lb$VISITDY < 0)
@@ -81,16 +76,6 @@ for (path in paths) {
   
   # Merge BW with other relevant domains
   LB <- groupSEND(Data,'lb')
-  # 
-  # # Set Day 1 Index
-  # dayTable <- table(BW$VISITDY)
-  # minIndex <- which(abs(as.numeric(names(dayTable))) == min(abs(as.numeric(names(dayTable)))))
-  # if (length(minIndex) > 1) {
-  #   minIndex <- minIndex[which(dayTable[minIndex] == max(dayTable[minIndex]))]
-  # }
-  # d1 <- as.numeric(names(dayTable)[minIndex])
-  # d1Index <- which(BW$VISITDY == d1)
-  # baselineData <- BW[d1Index,]
   
   # Rank Order Treatment Groups by TRTDOS
   LB$TRTDOSrank <- NA
@@ -119,22 +104,6 @@ for (path in paths) {
   # Concatenate LBSPEC and LBTESTCD
   LB$LBTESTCD <- paste(LB$LBSPEC, LB$LBTESTCD, sep = ' | ')
   
-  # # Cap Study at 28 days
-  # if (TESTCD != 'TERMBW') {
-  #   removeIndex <- which(BW$VISITDY > 29)
-  #   if (length(removeIndex) > 0) {
-  #     BW <- BW[-removeIndex,]
-  #   }
-  # }
-  
-  # # Remove TK Animals
-  # if (Species == 'RAT') {
-  #   removeIndex <- which(BW$TKstatus == T)
-  #   if (length(removeIndex) > 0) {
-  #     BW <- BW[-removeIndex,]
-  #   }
-  # }
-  
   # Remove Recovery Animals
   removeIndex <- which(LB$RecoveryStatus == T)
   if (length(removeIndex) > 0) {
@@ -145,9 +114,9 @@ for (path in paths) {
   sexIndex <- which(LB$SEX == Sex)
   LB <- LB[sexIndex,]
   
-  # Select Test
-  # testIndex <- which(LB$LBTESTCD %in% TESTCDs)
-  # LB <- LB[testIndex,]
+  if (nrow(LB) == 0) {
+    next
+  }
   
   # Find Control Animals
   c1Index <- grep('control', LB$Treatment, ignore.case = T)
@@ -155,25 +124,12 @@ for (path in paths) {
   c3Index <- grep('reference', LB$Treatment, ignore.case = T)
   cIndex <- Reduce(union, list(c1Index, c2Index, c3Index))
   
-  # LB$LBSTRESN <- as.numeric(LB$LBSTRESN)
-  # baselineData$LBSTRESN <- as.numeric(baselineData$LBSTRESN)
-  # 
-  # Model <- lm(LBSTRESN ~ VISITDY, data = BW)
-  # BW.sd.c <- sd(Model$residuals[cIndex])
-  
   LB$zScore <- NA
-  LB$zScoreModel <- NA
   LB$percentControl <- NA
-  # BW$baselineChange <- NA
-  # BW$baselineChangePercent <- NA
-  # BW$zScoreBaselineChange <- NA
-  # BW$zScoreModelBaselineChange <- NA
-  # BW$percentChangeBaselineChange <- NA
   
   TESTCDs <- unique(LB$LBTESTCD)
   Subjects <- unique(LB$USUBJID)
   
-  # Add for loop for LBTESTCD here!!!!!!!!!!!!!!!!!!!!!!!!
   for (TESTCD in TESTCDs) {
     testIndex <- which(LB$LBTESTCD == TESTCD)
     ctIndex <- intersect(cIndex, testIndex)
@@ -210,18 +166,12 @@ for (path in paths) {
   }
 }
 
-# LBstudies$TRTDOSrank <- factor(LBstudies$TRTDOSrank, levels = doseRanks)
-
-# FIX THIS!!!!!!!!!!!!!!!!!!!!!
 Compound <- unlist(lapply(strsplit(LBstudies$StudySpecies, ' (', fixed = T), '[[', 1))
 Species <- substr(unlist(lapply(strsplit(LBstudies$StudySpecies, ' (', fixed = T), '[[', 2)), 1, 3)
 
 LBstudies$Compound <- Compound
 LBstudies$Species <- Species
 
-metrics <- c('LBSTRESN',
-             'zScore',
-             'percentControl')
 for (metric in metrics) {
   plotData <- aggregate(get(metric) ~ STUDYID + Compound + Species + LBTESTCD + TRTDOSrank, FUN = mean, data = LBstudies)
   colnames(plotData)[6] <- 'Value'
@@ -229,7 +179,7 @@ for (metric in metrics) {
   plotData <- plotData[which(plotData$TRTDOSrank == 'Treatment HD'),]
   
   lengthData <- aggregate(Value ~ LBTESTCD, FUN = length, plotData)
-  includeTests <- lengthData$LBTESTCD[which(lengthData$Value == 4)]
+  includeTests <- lengthData$LBTESTCD[which(lengthData$Value == length(unique(plotData$STUDYID)))]
   plotData <- plotData[which(plotData$LBTESTCD %in% includeTests),]
   
   meanData <- aggregate(Value ~ LBTESTCD, FUN = mean, plotData)
@@ -242,11 +192,31 @@ for (metric in metrics) {
     coord_flip() + geom_line(aes(group = STUDYID)) + ggtitle(metric)
   print(p)
   
-  if ((savePlots == T)&(Local == T)) {
-    ggsave(filename = paste0(metric,'.png'),
+  if (savePlots == T) {
+    if (TESTCD == 'BW') {
+      if (plotType == 'heatmap') {
+        if (heatmapMethod == 'bin') {
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', Sex, '.png')
+        } else {
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', Sex, '.png')
+        }
+      } else {
+        fileName <- paste0(metric,'-',plotType, '-', Sex, '.png')
+      }
+    } else {
+      fileName <- paste0(metric, '-', Sex, '.png')
+    }
+    ggsave(filename = fileName,
            plot = p,
            device = 'png',
-           path = paste0(saveFolder,'LBplots'))
+           path = writeDirectory)
+  }
+  
+  if (savePlots == T) {
+    ggsave(filename = paste0(metric, '-', Sex, '.png'),
+           plot = p,
+           device = 'png',
+           path = paste0(writeDirectory))
   }
 }
 

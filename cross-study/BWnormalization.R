@@ -7,58 +7,85 @@ library(devtools)
 library(httr)
 library(reshape2)
 library(scales)
+library(ini)
 
-# localPath <- '~/PhUSE/Git/phuse-scripts/'
-localPath <- 'C:/Users/Kevin.Snyder/OneDrive - FDA/Documents/PhUSE/BioCelerate/DataSharing/'
+# Set working directory to location of script
+homePath <- dirname(sys.calls()[[1]][[2]])
+setwd(homePath)
 
-Local <- T
-savePlots <- F
-saveFolder <- 'C:/Users/Kevin.Snyder/Box Sync/Biocelerate/Cross Study Comparison Project/BW Analysis/BioCelerate/'
+dataPaths <- read.ini('dataPaths.ini')
 
-# Define Test
+###########################################################################################################
+# Parameter Settings:
+
+# Select Data Source (Public = phuse-scripts GitHub data; BioCelerate = TDS datasets)
+dataSource <- 'Public'
+# dataSource <- 'BioCelerate'
+
+# Select TRUE to Save Plot Figures
+savePlots <- T
+
+# Define BWTESTCD to Analyze
 TESTCD <- 'BW'
 # TESTCD <- 'TERMBW'
 
+# Select Plot Type (TERMBW defaults to bar graph)
 plotType <- 'line'
-plotType <- 'heatmap'
+# plotType <- 'heatmap'
 
+# Select Method for Generating Heatmap
 heatmapMethod <- 'interpolate'
-# heatmapMethod <- 'bin'
+heatmapMethod <- 'bin'
 
-binSize <- 2
+# Select Heatmap Bin Size
+binSize <- 7
 
-if (Local == T) {
-  source(paste0(localPath,'contributed/Nonclinical/R/Functions/Functions.R'))
-  source(paste0(localPath,'contributed/Nonclinical/R/Functions/groupSEND.R'))
-} else {
+# Select Sex of Animals to Analyze
+Sex <- 'M'
+
+###########################################################################################################
+
+# Populate parameters based on dataSource selection
+if (dataSource == 'Public') {
   source_url('https://raw.githubusercontent.com/phuse-org/phuse-scripts/master/contributed/Nonclinical/R/Functions/Functions.R')
   source_url('https://raw.githubusercontent.com/phuse-org/phuse-scripts/master/contributed/Nonclinical/R/Functions/groupSEND.R')
+  
+  doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD', 'Treatment Max')
+  
+} else if (dataSource == 'BioCelerate') {
+  source('Functions/Functions.R')
+  source('Functions/groupSEND.R')
+
+  doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD')
+}
+paths <- as.character(unlist(dataPaths[[dataSource]]))
+
+# Define Metrics to Plot based on TESTCD Selection
+metrics <- c('BWSTRESN',
+             'percentControl',
+             'zScore',
+             'baselineChange',
+             'baselineChangePercent',
+             'percentChangeBaselineChange',
+             'zScoreBaselineChange'
+             )
+if (TESTCD == 'BW') {
+  metrics <- c(metrics, 'zScoreModelBaselineChange', 'zScoreModel')
 }
 
-paths <- c('data/send/1-Month Dog_IDO1_Company A',
-           'data/send/1-Month Dog_IDO1_Company B',
-# paths <- c('data/send/1-Month Rat_IDO1_Company A',
-           'data/send/1-Month Rat_IDO1_Company A',
-           'data/send/1-Month Rat_IDO1_Company B')
-# paths <- c('data/send/FFU-Contribution-to-FDA',
-#            'data/send/PDS',
-#            'data/send/instem',
-#            'data/send/PointCross')
-# paths <- c('data/send/FFU-Contribution-to-FDA')
-# paths <- c('data/send/PDS')
-# paths <- c('data/send/instem')
-# paths <- c('data/send/PointCross')
+# Define path to write files (and create directory if necessary)
+writeDirectory <- paste0('results/', dataSource, '/', TESTCD, 'plots')
+if (!dir.exists(writeDirectory)) {
+  dir.create(writeDirectory, recursive = T)
+}
 
-# Define Names of Dose Ranks
-# doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD', 'Treatment Max')
-doseRanks <- c('Vehicle', 'Treatment LD', 'Treatment MD', 'Treatment HD')
-
+# Load and Process Study Data
 for (path in paths) {
   print(path)
   
-  if (Local == T) {
-    Data <- load.xpt.files(paste0(localPath,path))
-  } else {
+  if (dataSource == 'BioCelerate') {
+    Data <- load.xpt.files(paste(homePath, path, sep = '/'))
+  } else if (dataSource == 'Public') {
     Data <- load.GitHub.xpt.files(studyDir = path)
   }
   
@@ -73,40 +100,6 @@ for (path in paths) {
   
   # Merge BW with other relevant domains
   BW <- groupSEND(Data,'bw')
-  
-  # Set Day 1 Index
-  dayTable <- table(BW$VISITDY)
-  minIndex <- which(abs(as.numeric(names(dayTable))) == min(abs(as.numeric(names(dayTable)))))
-  if (length(minIndex) > 1) {
-    minIndex <- minIndex[which(dayTable[minIndex] == max(dayTable[minIndex]))]
-  }
-  d1 <- as.numeric(names(dayTable)[minIndex])
-  d1Index <- which(BW$VISITDY == d1)
-  baselineData <- BW[d1Index,]
-  
-  # Rank Order Treatment Groups by TRTDOS
-  BW$TRTDOSrank <- NA
-  if (!is.null(BW$TRTDOS)) {
-    TRTDOSvalues <- as.numeric(unique(BW$TRTDOS))
-  } else {
-    TRTDOSvalues <- as.numeric(unique(BW$EXDOSE))
-  }
-  TRTDOSranks <- rank(TRTDOSvalues)
-  for (i in seq(nrow(BW))) {
-    if (!is.null(BW$TRTDOS)) {
-      index <- TRTDOSranks[which(TRTDOSvalues == as.numeric(BW$TRTDOS[i]))]
-    } else {
-      index <- TRTDOSranks[which(TRTDOSvalues == as.numeric(BW$EXDOSE[i]))]
-    }
-    BW$TRTDOSrank[i] <- doseRanks[index]
-  }
-  
-  treatmentTable <- table(BW$Treatment)
-  maxIndex <- which(treatmentTable == max(treatmentTable))
-  BW$studyTreatment <- names(treatmentTable)[maxIndex]
-  
-  # Concatenate STUDYID and TreatmentDose and Species
-  BW$StudySpecies <- paste0(BW$studyTreatment, ' (', Species, ')')
   
   # Cap Study at 28 days
   if (TESTCD != 'TERMBW') {
@@ -131,8 +124,48 @@ for (path in paths) {
   }
   
   # Select Sex
-  sexIndex <- which(BW$SEX == 'F')
+  sexIndex <- which(BW$SEX == Sex)
   BW <- BW[sexIndex,]
+  
+  if (nrow(BW) == 0) {
+    next
+  }
+  
+  # Set Baseline Index
+  baselineIndex <- NULL
+  for (subject in unique(BW$USUBJID)) {
+    subjectIndex <- which(BW$USUBJID == subject)
+    subjectDays <- BW$VISITDY[subjectIndex]
+    subjectPredoseDays <- subjectDays[which(subjectDays <= 1)]
+    subjectBaselineDay <- max(subjectPredoseDays)
+    subjectBaselineIndex <- subjectIndex[which(subjectDays == subjectBaselineDay)]
+    baselineIndex <- c(baselineIndex, subjectBaselineIndex)
+  }
+  baselineData <- BW[baselineIndex,]
+  
+  # Rank Order Treatment Groups by TRTDOS
+  BW$TRTDOSrank <- NA
+  if (!is.null(BW$TRTDOS)) {
+    TRTDOSvalues <- as.numeric(unique(BW$TRTDOS))
+  } else {
+    TRTDOSvalues <- as.numeric(unique(BW$EXDOSE))
+  }
+  TRTDOSranks <- rank(TRTDOSvalues)
+  for (i in seq(nrow(BW))) {
+    if (!is.null(BW$TRTDOS)) {
+      index <- TRTDOSranks[which(TRTDOSvalues == as.numeric(BW$TRTDOS[i]))]
+    } else {
+      index <- TRTDOSranks[which(TRTDOSvalues == as.numeric(BW$EXDOSE[i]))]
+    }
+    BW$TRTDOSrank[i] <- doseRanks[index]
+  }
+  
+  treatmentTable <- table(BW$Treatment)
+  maxIndex <- which(treatmentTable == max(treatmentTable))
+  BW$studyTreatment <- names(treatmentTable)[maxIndex]
+  
+  # Concatenate STUDYID and TreatmentDose and Species
+  BW$StudySpecies <- paste0(BW$studyTreatment, ' (', Species, ')')
   
   # Select Test
   testIndex <- which(BW$BWTESTCD == TESTCD)
@@ -272,20 +305,13 @@ for (path in paths) {
   }
 }
 
+# Generate Figures
+
 BWstudies$TRTDOSrank <- factor(BWstudies$TRTDOSrank, levels = doseRanks)
 
-if (TESTCD == 'BW') {
-  metrics <- c('BWSTRESN',
-               'zScore',
-               'zScoreModel',
-               'percentControl',
-               'baselineChange',
-               'baselineChangePercent',
-               'zScoreBaselineChange',
-               'zScoreModelBaselineChange',
-               'percentChangeBaselineChange')
-  
-  for (metric in metrics) {
+
+for (metric in metrics) {
+  if (TESTCD == 'BW') {
     plotData <- aggregate(get(metric) ~ StudySpecies + VISITDY + TRTDOSrank, FUN = mean, data = BWstudies)
     if (plotType == 'line') {
       colnames(plotData) <- c('Study', 'Day', 'Treatment', metric)
@@ -363,43 +389,34 @@ if (TESTCD == 'BW') {
         scale_x_discrete(breaks = heatmapBreaks)
     }
     print(p)
-    if ((savePlots == T)&(Local == T)) {
-      if (plotType == 'heatmap') {
-        if (heatmapMethod == 'interpolate') {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'.png')
-        } else if (heatmapMethod == 'bin') {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize,'.png')
-        }
-      } else if (plotType == 'line') {
-        fileName <- paste0(metric,'-',plotType,'.png')
-      }
-      ggsave(filename = fileName,
-             plot = p,
-             device = 'png',
-             path = paste0(saveFolder,TESTCD,'plots'))
-    }
-  }
-} else {
-  metrics <- c('BWSTRESN',
-               'zScore',
-               'percentControl',
-               'baselineChange',
-               'baselineChangePercent',
-               'zScoreBaselineChange',
-               'percentChangeBaselineChange')
-  for (metric in metrics) {
+  } else {
     plotData <- aggregate(get(metric) ~ StudySpecies + TRTDOSrank, FUN = mean, data = BWstudies)
     colnames(plotData) <- c('Study', 'Treatment', metric)
     p <- ggplot(plotData, aes(x = Study, y = get(metric), fill = Treatment, shape = Study)) +
       geom_col(position = 'dodge2') + ylab(metric) + ggtitle(metric) +
-      scale_fill_manual(values = c('black', 'blue', 'dark green', 'red', 'purple'))
+      scale_fill_manual(values = c('black', 'blue', 'dark green', 'red', 'purple')) +
+      theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
     print(p)
-    if ((savePlots == T)&(Local == T)) {
-      ggsave(filename = paste0(metric,'.png'),
-             plot = p,
-             device = 'png',
-             path = paste0(saveFolder,TESTCD,'plots'))
+  }
+  if (savePlots == T) {
+    if (TESTCD == 'BW') {
+      if (plotType == 'heatmap') {
+        if (heatmapMethod == 'bin') {
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', Sex, '.png')
+        } else {
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', Sex, '.png')
+        }
+      } else {
+        fileName <- paste0(metric,'-',plotType, '-', Sex, '.png')
+      }
+    } else {
+      fileName <- paste0(metric, '-', Sex, '.png')
     }
+    ggsave(filename = fileName,
+           plot = p,
+           device = 'png',
+           path = writeDirectory)
   }
 }
+
 

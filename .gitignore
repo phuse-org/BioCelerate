@@ -4,6 +4,8 @@
 .RData
 .Ruserdata
 *.Rproj
+!cross-study.Rproj
+dataPaths.ini
 
 # ignore sysParameters*.R for now
 sysParameters*.R
@@ -18,3 +20,4 @@ sendDashboard.ini
 /ignore
 /metadata
 /cross-study/data
+/cross-study/results
