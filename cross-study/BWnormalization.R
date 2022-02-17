@@ -316,6 +316,7 @@ for (metric in metrics) {
     if (plotType == 'line') {
       colnames(plotData) <- c('Study', 'Day', 'Treatment', metric)
       p <- ggplot(plotData, aes(x = Day, y = get(metric), color = Treatment, shape = Study)) +
+        guides(colour = guide_legend(override.aes = list(shape = NA))) +
         geom_point() + geom_line() + ylab(metric) + ggtitle(metric) +
         scale_color_manual(values = c('black', 'blue', 'dark green', 'red', 'purple'))
     } else if (plotType == 'heatmap') {
@@ -393,6 +394,7 @@ for (metric in metrics) {
     plotData <- aggregate(get(metric) ~ StudySpecies + TRTDOSrank, FUN = mean, data = BWstudies)
     colnames(plotData) <- c('Study', 'Treatment', metric)
     p <- ggplot(plotData, aes(x = Study, y = get(metric), fill = Treatment, shape = Study)) +
+      guides(colour = guide_legend(override.aes = list(shape = NA))) +
       geom_col(position = 'dodge2') + ylab(metric) + ggtitle(metric) +
       scale_fill_manual(values = c('black', 'blue', 'dark green', 'red', 'purple')) +
       theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
