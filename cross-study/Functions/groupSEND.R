@@ -16,7 +16,7 @@
 
 '%ni%' <- Negate('%in%')
 
-groupSEND <- function(dataset,targetDomain,dmFields=c('SEX','ARMCD','SETCD','USUBJID'),
+groupSEND <- function(dataset,targetDomain,dmFields=c('SEX','ARMCD','SETCD','USUBJID', 'RFSTDTC'),
                       exFields=c('EXTRT','EXDOSE','EXDOSU'),
                       txParams=c('TRTDOS','TRTDOSU','TKDESC','GRPLBL','SPGRPCD')) {
   
@@ -146,63 +146,34 @@ groupSEND <- function(dataset,targetDomain,dmFields=c('SEX','ARMCD','SETCD','USU
     }
   }
   groupedData <- merge(groupedData,TKcheck,by='USUBJID')
-  
-  # Merge recovery status and interim status from ta domain (EPOCH) by arm code or se domain (ELEMENT) by subject
-  if (!is.null(dataset$ta)) {
-    if (! is.factor(dataset$ta$ARMCD)) {
-      dataset$ta$ARMCD <- factor(dataset$ta$ARMCD)
-    }
-    ARMCD <- levels(dataset$ta$ARMCD)
-    taData <- rep(NA,length(ARMCD)*3)
-    dim(taData) <- c(length(ARMCD),3)
-    colnames(taData) <- c('ARMCD','RecoveryStatus','InterimStatus')
-    taData <- as.data.frame(taData)
-    taData$ARMCD <- ARMCD
-    count <- 0
-    for (arm in ARMCD) {
-      count <- count + 1
-      armIndex <- which(dataset$ta$ARMCD==arm)
-      if (length(grep('recovery',dataset$ta$EPOCH[armIndex],ignore.case=TRUE))>0) {
-        taData$RecoveryStatus[count] <- TRUE
-        taData$InterimStatus[count] <- FALSE
-      } else if (length(grep('interim',dataset$ta$EPOCH[armIndex],ignore.case=TRUE))>0) {
-        taData$RecoveryStatus[count] <- FALSE
-        taData$InterimStatus[count] <- TRUE
-      } else {
-        taData$RecoveryStatus[count] <- FALSE
-        taData$InterimStatus[count] <- FALSE
-      }
-      
-    }
-    groupedData <- merge(groupedData,taData,by='ARMCD')
-  } else if (!is.null(dataset$se)) {
-    seData <- rep(NA,length(subjects)*3)
-    dim(seData) <- c(length(subjects),3)
-    colnames(seData) <- c('USUBJID','RecoveryStatus','InterimStatus')
+  #  Merge recovery status, interim status and recovery start day from se domain (ELEMENT) by subject
+  if (!is.null(dataset$se)) {
+    seData <- rep(NA,length(subjects)*4)
+    dim(seData) <- c(length(subjects),4)
+    colnames(seData) <- c('USUBJID','RecoveryStatus','InterimStatus', 'RecoveryStartDY')
     seData <- as.data.frame(seData)
     seData$USUBJID <- subjects
     count <- 0
     for (subject in subjects) {
       count <- count + 1
+      dmIndex <- which(dataset$dm$USUBJID==subject)
       subjectIndex <- which(dataset$se$USUBJID==subject)
-      if (length(grep('recovery',dataset$se$ELEMENT[subjectIndex],ignore.case=TRUE))>0) {
+      if (length(seInd <- grep('recovery',dataset$se$ELEMENT[subjectIndex],ignore.case=TRUE))>0) {
         seData$RecoveryStatus[count] <- TRUE
-      } else {
-        seData$RecoveryStatus[count] <- FALSE
-      }
-      
-      if (length(grep('recovery',dataset$se$ELEMENT[subjectIndex],ignore.case=TRUE))>0) {
-        seData$RecoveryStatus[count] <- TRUE
+        sestdtc <- dataset$se$SESTDTC[subjectIndex][seInd]
         seData$InterimStatus[count] <- FALSE
+        seData$RecoveryStartDY[count] <- difftime(as.Date(paste0('',sestdtc)),as.Date(dataset$dm$RFSTDTC[dmIndex]), units = 'days') + 1
       } else if (length(grep('interim',dataset$se$ELEMENT[subjectIndex],ignore.case=TRUE))>0) {
         seData$RecoveryStatus[count] <- FALSE
         seData$InterimStatus[count] <- TRUE
+        seData$RecoveryStartDY[count] <- NA
       } else {
         seData$RecoveryStatus[count] <- FALSE
         seData$InterimStatus[count] <- FALSE
+        seData$RecoveryStartDY[count] <- NA
       }
     }
-    groupedData <- merge(groupedData,seData,by='USUBJID')
+     groupedData <- merge(groupedData,seData,by='USUBJID')
   }
   
   # Merge disposition description
@@ -284,7 +255,7 @@ groupSEND <- function(dataset,targetDomain,dmFields=c('SEX','ARMCD','SETCD','USU
   groupedData <- groupedData[,dropIndex]
   
   # reorder columns
-  columns2move <- c('SET','Treatment','TreatmentDose','Dose','Sex','RecoveryStatus','InterimStatus','Disposition','TKstatus')
+  columns2move <- c('SET','Treatment','TreatmentDose','Dose','Sex','RecoveryStatus','InterimStatus','RecoveryStartDY','Disposition','TKstatus')
   columnsNOmove <- which(! colnames(groupedData) %in% columns2move)
   groupedData <- cbind(groupedData[,columns2move],groupedData[,columnsNOmove])
   

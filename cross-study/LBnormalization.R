@@ -8,6 +8,7 @@ library(httr)
 library(reshape2)
 library(scales)
 library(ini)
+library(dplyr)
 
 # Set working directory to location of script
 homePath <- dirname(sys.calls()[[1]][[2]])
@@ -65,9 +66,11 @@ for (path in paths) {
     Data <- load.GitHub.xpt.files(studyDir = path)
   }
   
-  # remove negative VISITDY values
-  removeIndex <- which(Data$lb$VISITDY < 0)
-  if (length(removeIndex) > 0) {
+  # remove negative VISITDY/LBNOMDY (pretest) values
+  removeIndex1 <- which(Data$lb$LBNOMDY < 0)
+  removeIndex2 <- which(Data$lb$VISITDY < 0)
+  removeIndex <- union(removeIndex1, removeIndex2)
+   if (length(removeIndex) > 0) {
     Data$lb <- Data$lb[-removeIndex,]
   }
   
@@ -104,12 +107,17 @@ for (path in paths) {
   # Concatenate LBSPEC and LBTESTCD
   LB$LBTESTCD <- paste(LB$LBSPEC, LB$LBTESTCD, sep = ' | ')
   
-  # Remove Recovery Animals
-  removeIndex <- which(LB$RecoveryStatus == T)
-  if (length(removeIndex) > 0) {
-    LB <- LB[-removeIndex,]
-  }
-  
+  # Find the LB records for the last bleeding before the recovery
+  # 1. remove all LB records after recovery start
+  dIndex <- which(as.numeric(LB$LBDY) > as.numeric(LB$RecoveryStartDY))
+  LB1 <- LB[-dIndex,]
+  # 2. The LB last bleeding before recovery has the max LBDY
+  LB <- LB1 %>%
+    group_by(USUBJID, LBCAT, LBTESTCD) %>%
+    slice(which.max(LBDY))
+  #data check
+  #Write.csv(LB,file="lb.csv",na="",row.names=FALSE) 
+ 
   # Select Sex
   sexIndex <- which(LB$SEX == Sex)
   LB <- LB[sexIndex,]
