@@ -163,6 +163,11 @@ groupSEND <- function(dataset,targetDomain,dmFields=c('SEX','ARMCD','SETCD','USU
         sestdtc <- dataset$se$SESTDTC[subjectIndex][seInd]
         seData$InterimStatus[count] <- FALSE
         seData$RecoveryStartDY[count] <- difftime(as.Date(paste0('',sestdtc)),as.Date(dataset$dm$RFSTDTC[dmIndex]), units = 'days') + 1
+      } else if (length(seInd <- grep('recovery',dataset$se$SEUPDES[subjectIndex],ignore.case=TRUE))>0) {
+        seData$RecoveryStatus[count] <- TRUE
+        sestdtc <- dataset$se$SESTDTC[subjectIndex][seInd]
+        seData$InterimStatus[count] <- FALSE
+        seData$RecoveryStartDY[count] <- difftime(as.Date(paste0('',sestdtc)),as.Date(dataset$dm$RFSTDTC[dmIndex]), units = 'days') + 1
       } else if (length(grep('interim',dataset$se$ELEMENT[subjectIndex],ignore.case=TRUE))>0) {
         seData$RecoveryStatus[count] <- FALSE
         seData$InterimStatus[count] <- TRUE

@@ -110,7 +110,11 @@ for (path in paths) {
   # Find the LB records for the last bleeding before the recovery
   # 1. remove all LB records after recovery start
   dIndex <- which(as.numeric(LB$LBDY) > as.numeric(LB$RecoveryStartDY))
-  LB1 <- LB[-dIndex,]
+  if (length(dIndex) > 0) {
+    LB1 <- LB[-dIndex,]
+  } else{
+    LB1 <- LB
+  }
   # 2. The LB last bleeding before recovery has the max LBDY
   LB <- LB1 %>%
     group_by(USUBJID, LBCAT, LBTESTCD) %>%
