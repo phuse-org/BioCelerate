@@ -26,7 +26,7 @@ dataSource <- 'BioCelerate'
 # Select Organ
 organ <- 'LIVER'
 organ <- 'KIDNEY'
-organ <- 'ALL'
+# organ <- 'ALL'
 
 # Select TRUE to Save Plot Figures
 savePlots <- T
@@ -80,7 +80,8 @@ paths <- as.character(unlist(dataPaths[[dataSource]]))
 # Define Metrics
 metrics <- c('LBSTRESN',
              'percentControl',
-             'zScore')
+             'zScore',
+             'foldChange')
 
 # Define path to write files (and create directory if necessary)
 writeDirectory <- paste0('results/', dataSource, '/', 'LBplots')
@@ -175,7 +176,8 @@ for (path in paths) {
   
   LB$zScore <- NA
   LB$percentControl <- NA
-  
+  LB$foldChange <- NA
+
   TESTCDs <- unique(LB$LBTESTCD)
   Subjects <- unique(LB$USUBJID)
   
@@ -192,6 +194,7 @@ for (path in paths) {
       
       LB$zScore[index] <- (LB$LBSTRESN[index] - LB.mean.c)/LB.sd.c
       LB$percentControl[index] <- (LB$LBSTRESN[index] - LB.mean.c)/LB.mean.c*100
+      LB$foldChange[index] <- LB$LBSTRESN[index]/LB.mean.c
     }
   }
   
@@ -206,7 +209,8 @@ for (path in paths) {
                    'TRTDOSrank',
                    'LBSTRESN',
                    'zScore',
-                   'percentControl')]
+                   'percentControl',
+                   'foldChange')]
   
   for (col in colnames(LBstudy)) {
     if (class(LBstudy[[col]])[1] == 'labelled') {
@@ -242,9 +246,13 @@ for (metric in metrics) {
   
   plotData$LBTESTCD <- factor(plotData$LBTESTCD, levels = meanData$LBTESTCD)
   
-  p <- ggplot(plotData, aes(x = LBTESTCD, y = Value, group = LBTESTCD, color = Compound, shape = Species)) +
-    geom_point(size =5) + geom_bar(stat = 'summary', fun.x = 'mean', alpha = 0, color = 'black') +
-    coord_flip() + geom_line(aes(group = STUDYID)) + ggtitle(metric)
+  p <- ggplot(plotData, aes(y = LBTESTCD, x = Value, group = LBTESTCD, color = Compound, shape = Species)) +
+    geom_point(size =5) + geom_point(stat = 'summary', fun.x = 'mean', color = 'black', shape = '|', size = 10) +
+    ggtitle(metric) + guides(color = guide_legend(override.aes = list(shape = 'square')))
+  if (metric == 'foldChange') {
+    p <- p + scale_x_continuous(trans = log_trans(), breaks = pretty_breaks())
+  }
+  # p <- p + coord_flip()
   print(p)
   
   if (savePlots == T) {
