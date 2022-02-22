@@ -31,7 +31,7 @@ TESTCD <- 'BW'
 
 # Select Plot Type (TERMBW defaults to bar graph)
 plotType <- 'line'
-plotType <- 'heatmap'
+# plotType <- 'heatmap'
 
 # Select Method for Generating Heatmap
 heatmapMethod <- 'interpolate'
@@ -42,6 +42,11 @@ binSize <- 7
 
 # Select Sex of Animals to Analyze
 Sex <- 'M'
+
+# Select Species of Animals to Analyze
+speciesFilter <- 'DOG'
+speciesFilter <- 'RAT'
+# speciesFilter <- 'ALL'
 
 ###########################################################################################################
 
@@ -97,6 +102,11 @@ for (path in paths) {
   
   # Get Species of Study
   Species <- Data$ts$TSVAL[which(Data$ts$TSPARMCD == 'SPECIES')]
+  
+  # Implement Species Filter
+  if (speciesFilter == Species) {
+    next
+  }
   
   # Merge BW with other relevant domains
   BW <- groupSEND(Data,'bw')
@@ -404,15 +414,15 @@ for (metric in metrics) {
     if (TESTCD == 'BW') {
       if (plotType == 'heatmap') {
         if (heatmapMethod == 'bin') {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', Sex, '.png')
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', speciesFilter, '-', Sex, '.png')
         } else {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', Sex, '.png')
+          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', speciesFilter, '-', Sex, '.png')
         }
       } else {
-        fileName <- paste0(metric,'-',plotType, '-', Sex, '.png')
+        fileName <- paste0(metric,'-',plotType, '-', speciesFilter, '-', Sex, '.png')
       }
     } else {
-      fileName <- paste0(metric, '-', Sex, '.png')
+      fileName <- paste0(metric, '-', speciesFilter, '-', Sex, '.png')
     }
     ggsave(filename = fileName,
            plot = p,
