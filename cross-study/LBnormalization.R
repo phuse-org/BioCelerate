@@ -21,7 +21,12 @@ dataPaths <- read.ini('dataPaths.ini')
 
 # Select Data Source (Public = phuse-scripts GitHub data; BioCelerate = TDS datasets)
 dataSource <- 'Public'
-# dataSource <- 'BioCelerate'
+dataSource <- 'BioCelerate'
+
+# Select Organ
+organ <- 'LIVER'
+organ <- 'KIDNEY'
+organ <- 'ALL'
 
 # Select TRUE to Save Plot Figures
 savePlots <- T
@@ -30,6 +35,32 @@ savePlots <- T
 Sex <- 'M'
 
 ###########################################################################################################
+
+organTESTCDlist <- list('LIVER' = c('SERUM | ALT',
+                                    'SERUM | AST',
+                                    'SERUM | ALP',
+                                    'SERUM | GGT',
+                                    'SERUM | BILI',
+                                    'SERUM | ALB'),
+                        'KIDNEY' = c('SERUM | CREAT',
+                                     'SERUM | UREAN',
+                                     'SERUM | ALB',
+                                     'SERUM | CL',
+                                     'SERUM | K',
+                                     'SERUM | PHOS',
+                                     'SERUM | SODIUM',
+                                     'URINE | CL',
+                                     'URINE | K',
+                                     'URINE | SODIUM',
+                                     'URINE | GLUC',
+                                     'URINE | SPGRAV',
+                                     'URINE | VOLUME',
+                                     'URINE | PROT',
+                                     'URINE | UROBIL',
+                                     'WHOLE BLOOD | RBC',
+                                     'WHOLE BLOOD | HCT',
+                                     'WHOLE BLOOD | RETI')
+                        )
 
 # Populate parameters based on dataSource selection
 if (dataSource == 'Public') {
@@ -107,6 +138,12 @@ for (path in paths) {
   # Concatenate LBSPEC and LBTESTCD
   LB$LBTESTCD <- paste(LB$LBSPEC, LB$LBTESTCD, sep = ' | ')
   
+  if (organ != 'ALL') {
+    TESTCDlist <- organTESTCDlist[[organ]]
+    organIndex <- which(LB$LBTESTCD %in% TESTCDlist)
+    LB <- LB[organIndex,]
+  }
+  
   # Find the LB records for the last bleeding before the recovery
   # 1. remove all LB records after recovery start
   dIndex <- which(as.numeric(LB$LBDY) > as.numeric(LB$RecoveryStartDY))
@@ -171,6 +208,12 @@ for (path in paths) {
                    'zScore',
                    'percentControl')]
   
+  for (col in colnames(LBstudy)) {
+    if (class(LBstudy[[col]])[1] == 'labelled') {
+      LBstudy[[col]] <- as.character(LBstudy[[col]])
+    }
+  }
+  
   if (exists('LBstudies')) {
     LBstudies <- rbind(LBstudies,LBstudy)
   } else {
@@ -185,7 +228,7 @@ LBstudies$Compound <- Compound
 LBstudies$Species <- Species
 
 for (metric in metrics) {
-  plotData <- aggregate(get(metric) ~ STUDYID + Compound + Species + LBTESTCD + TRTDOSrank, FUN = mean, data = LBstudies)
+  plotData <- aggregate(as.numeric(get(metric)) ~ STUDYID + Compound + Species + LBTESTCD + TRTDOSrank, FUN = mean, data = LBstudies)
   colnames(plotData)[6] <- 'Value'
   
   plotData <- plotData[which(plotData$TRTDOSrank == 'Treatment HD'),]
@@ -225,7 +268,7 @@ for (metric in metrics) {
   }
   
   if (savePlots == T) {
-    ggsave(filename = paste0(metric, '-', Sex, '.png'),
+    ggsave(filename = paste0(metric, '-', organ, '-', Sex, '.png'),
            plot = p,
            device = 'png',
            path = paste0(writeDirectory))

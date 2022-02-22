@@ -20,7 +20,7 @@ dataPaths <- read.ini('dataPaths.ini')
 
 # Select Data Source (Public = phuse-scripts GitHub data; BioCelerate = TDS datasets)
 dataSource <- 'Public'
-# dataSource <- 'BioCelerate'
+dataSource <- 'BioCelerate'
 
 # Select TRUE to Save Plot Figures
 savePlots <- T
@@ -31,11 +31,11 @@ TESTCD <- 'BW'
 
 # Select Plot Type (TERMBW defaults to bar graph)
 plotType <- 'line'
-# plotType <- 'heatmap'
+plotType <- 'heatmap'
 
 # Select Method for Generating Heatmap
 heatmapMethod <- 'interpolate'
-heatmapMethod <- 'bin'
+# heatmapMethod <- 'bin'
 
 # Select Heatmap Bin Size
 binSize <- 7

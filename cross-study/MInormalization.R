@@ -20,10 +20,10 @@ dataPaths <- read.ini('dataPaths.ini')
 
 # Select Data Source (Public = phuse-scripts GitHub data; BioCelerate = TDS datasets)
 dataSource <- 'Public'
-# dataSource <- 'BioCelerate'
+dataSource <- 'BioCelerate'
 
 # Select Organ
-MISPEC <- 'LIVER'
+MISPEC <- 'KIDNEY'
 
 # Enter terms that will replace any string containing these terms (case-insensitive)
 termList <- c('NECROSIS' = 'Necrosis',
@@ -38,7 +38,7 @@ termList <- c('NECROSIS' = 'Necrosis',
 savePlots <- T
 
 # Select Sex of Animals to Analyze
-Sex <- 'F'
+Sex <- 'M'
 
 ###########################################################################################################
 
