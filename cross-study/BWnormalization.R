@@ -31,7 +31,7 @@ TESTCD <- 'BW'
 
 # Select Plot Type (TERMBW defaults to bar graph)
 plotType <- 'line'
-# plotType <- 'heatmap'
+plotType <- 'heatmap'
 
 # Select Method for Generating Heatmap
 heatmapMethod <- 'interpolate'
@@ -46,7 +46,7 @@ Sex <- 'M'
 # Select Species of Animals to Analyze
 speciesFilter <- 'DOG'
 speciesFilter <- 'RAT'
-# speciesFilter <- 'ALL'
+speciesFilter <- 'ALL'
 
 ###########################################################################################################
 
@@ -327,8 +327,13 @@ for (metric in metrics) {
       colnames(plotData) <- c('Study', 'Day', 'Treatment', metric)
       p <- ggplot(plotData, aes(x = Day, y = get(metric), color = Treatment, shape = Study)) +
         guides(colour = guide_legend(override.aes = list(shape = NA))) +
-        geom_point() + geom_line() + ylab(metric) + ggtitle(metric) +
+        geom_point() + geom_line() +
         scale_color_manual(values = c('black', 'blue', 'dark green', 'red', 'purple'))
+      if (metric == 'baselineChangePercent') {
+        p <- p + ylab(metric) + ylab('Percent Change in Body Weight (%)')
+      } else {
+        p <- p + ggtitle(metric) + ylab(metric)
+      }
     } else if (plotType == 'heatmap') {
       plotData$StudyTreatment <- paste(plotData$StudySpecies, plotData$TRTDOSrank, sep = ': ')
       colnames(plotData) <- c('Study', 'Day', 'Treatment', metric, 'StudyTreatment')
@@ -395,9 +400,14 @@ for (metric in metrics) {
         heatmapBreaks <- as.numeric(levels(interpData$Day))
       }
       p <- ggplot(interpData, aes(x = Day, fill = get(metric), y = StudyTreatment)) +
-        geom_tile() + ylab('Study (Species): Treatment') + ggtitle(metric) +
+        geom_tile() + ylab('Study (Species): Treatment') +
         scale_fill_gradient2(low = muted('blue'), high = muted('red'), name = metric) + theme_classic() +
         scale_x_discrete(breaks = heatmapBreaks)
+      if (metric == 'percentChangeBaselineChange') {
+        p <- p + guides(fill = guide_colorbar(title = 'Percent (%)'))
+      } else {
+        p <- p + ggtitle(metric)
+      }
     }
     print(p)
   } else {

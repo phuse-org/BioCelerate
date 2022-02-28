@@ -24,6 +24,7 @@ dataSource <- 'BioCelerate'
 
 # Select Organ
 MISPEC <- 'KIDNEY'
+# MISPEC <- 'LIVER'
 
 # Enter terms that will replace any string containing these terms (case-insensitive)
 termList <- c('NECROSIS' = 'Necrosis',
@@ -184,9 +185,10 @@ names(termFactors) <- termNames
 plotData$Finding <- fct_recode(plotData$Finding, !!!termFactors)
 
 p <- ggplot(plotData, aes(x = Finding, fill = Count, y = StudyTreatment)) +
-  geom_tile() + ylab('Study (Species): Treatment') + ggtitle(MISPEC) +
+  geom_tile() + ylab('Study (Species): Treatment') + 
+  # ggtitle(MISPEC) +
   scale_fill_gradient2(low = muted('blue'), high = muted('red'), name = MISPEC) + theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + guides(fill = guide_colorbar(title = 'Incidence Rate'))
 print(p)
 
 if (savePlots == T) {

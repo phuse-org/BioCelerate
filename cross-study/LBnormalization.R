@@ -248,32 +248,34 @@ for (metric in metrics) {
   
   p <- ggplot(plotData, aes(y = LBTESTCD, x = Value, group = LBTESTCD, color = Compound, shape = Species)) +
     geom_point(size =5) + geom_point(stat = 'summary', fun.x = 'mean', color = 'black', shape = '|', size = 10) +
-    ggtitle(metric) + guides(color = guide_legend(override.aes = list(shape = 'square')))
+    guides(color = guide_legend(override.aes = list(shape = 'square'))) + ylab('Lab Test (Specimen | Test Code)')
   if (metric == 'foldChange') {
-    p <- p + scale_x_continuous(trans = log_trans(), breaks = pretty_breaks())
+    p <- p + scale_x_continuous(trans = log_trans(), breaks = pretty_breaks(n = 8)) + xlab('Fold Change (Log-Scaled)')
+  } else {
+    p <- p + ggtitle(metric)
   }
   # p <- p + coord_flip()
   print(p)
   
-  if (savePlots == T) {
-    if (TESTCD == 'BW') {
-      if (plotType == 'heatmap') {
-        if (heatmapMethod == 'bin') {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', Sex, '.png')
-        } else {
-          fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', Sex, '.png')
-        }
-      } else {
-        fileName <- paste0(metric,'-',plotType, '-', Sex, '.png')
-      }
-    } else {
-      fileName <- paste0(metric, '-', Sex, '.png')
-    }
-    ggsave(filename = fileName,
-           plot = p,
-           device = 'png',
-           path = writeDirectory)
-  }
+  # if (savePlots == T) {
+  #   if (TESTCD == 'BW') {
+  #     if (plotType == 'heatmap') {
+  #       if (heatmapMethod == 'bin') {
+  #         fileName <- paste0(metric,'-',plotType,'-',heatmapMethod,'-',binSize, '-', Sex, '.png')
+  #       } else {
+  #         fileName <- paste0(metric,'-',plotType,'-',heatmapMethod, '-', Sex, '.png')
+  #       }
+  #     } else {
+  #       fileName <- paste0(metric,'-',plotType, '-', Sex, '.png')
+  #     }
+  #   } else {
+  #     fileName <- paste0(metric, '-', Sex, '.png')
+  #   }
+  #   ggsave(filename = fileName,
+  #          plot = p,
+  #          device = 'png',
+  #          path = writeDirectory)
+  # }
   
   if (savePlots == T) {
     ggsave(filename = paste0(metric, '-', organ, '-', Sex, '.png'),
