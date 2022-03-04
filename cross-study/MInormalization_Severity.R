@@ -7,6 +7,7 @@ library(ggpattern)
 library(Hmisc)
 library(httr)
 library(ini)
+library(magick)
 library(reshape2)
 library(scales)
 library(tidyr)
@@ -26,7 +27,7 @@ dataSource <- 'Public'
 dataSource <- 'BioCelerate'
 
 # Select Organ
-MISPEC <- 'LIVER'
+MISPEC <- 'BRAIN'
 
 # Enter terms that will replace any string containing these terms (case-insensitive)
 termList <- c('NECROSIS' = 'Necrosis',
@@ -198,8 +199,11 @@ for (i in seq(length(termList))) {
 names(termFactors) <- termNames
 plotData$Finding <- fct_recode(plotData$Finding, !!!termFactors)
 
-p <- ggplot(plotData, aes(x = Finding, fill = Count, y = StudyTreatment)) +
-  geom_tile_pattern(aes(pattern= Severity),pattern_fill = "white", pattern_color="black") + 
+p <- ggplot(plotData) +
+  geom_tile_pattern(aes(x = Finding, fill = Count, y = StudyTreatment,pattern_fill = Severity, pattern_density = Severity), 
+                    pattern= 'stripe', pattern_color="black") +
+  scale_pattern_density_discrete(range=c(0,0.5))+
+  scale_pattern_fill_brewer(palette = 3)+
   ylab('Study (Species): Treatment') + ggtitle(MISPEC) +
   scale_fill_gradient2(low = muted('blue'), high = muted('red'), name = 'Incidence') + theme_classic() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
