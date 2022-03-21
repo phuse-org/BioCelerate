@@ -44,6 +44,9 @@ savePlots <- T
 # Select Sex of Animals to Analyze
 Sex <- 'M'
 
+# Select if you would like Clustered Y Axis
+ClusterAxis <- F 
+
 ###########################################################################################################
 
 # Populate parameters based on dataSource selection
@@ -138,14 +141,22 @@ for (path in paths) {
     MI$Count[i] <- 1/length(index)
   }
 
-  #Create Severity Ranking for Studies 
-  if (isTRUE(grepl("1 OF 5",MI$MISEV))){
-    MI$Severity <- ordered(MI$MISEV, levels = c("O OF 5","1 OF 5","2 OF 5","3 OF 5", "4 OF 5", "5 OF 5"))
-    MI$Severity = MI$Severity %>% replace_na("O OF 5")
-  } else {
-    MI$Severity <- ordered(MI$MISEV, levels = c("NONE","MINIMAL","MILD","MODERATE", "MARKED"))
-    MI$Severity = MI$Severity %>% replace_na("NONE")
-  }
+  #Create Severity Ranking for Studies
+    MI$Severity <- MI$MISEV
+    MI$Severity <- str_replace_all(MI$Severity, "1 OF 5", "1")
+    MI$Severity <- str_replace_all(MI$Severity, "MINIMAL", "1")
+    MI$Severity <-  str_replace_all(MI$Severity, "2 OF 5", "2")
+    MI$Severity <-  str_replace_all(MI$Severity, "MILD", "2")
+    MI$Severity <-  str_replace_all(MI$Severity, "3 OF 5", "3")
+    MI$Severity <-  str_replace_all(MI$Severity, "MODERATE", "3")
+    MI$Severity <-  str_replace_all(MI$Severity, "4 OF 5", "4")
+    MI$Severity <-  str_replace_all(MI$Severity, "MARKED", "4")
+    MI$Severity <-  str_replace_all(MI$Severity, "5 OF 5", "5")
+    MI$Severity <-  str_replace_all(MI$Severity, "SEVERE", "5")
+    MI$Severity <- ordered(MI$Severity, levels= c("0","1", "2", "3", "4","5"))
+    MI$Severity = MI$Severity %>% replace_na("0")
+      
+
     
   MIstudy <- MI[,c('STUDYID',
                    'StudySpecies',
@@ -171,24 +182,39 @@ plotData <- aggregate(Count ~ StudySpecies + MISTRESC + TRTDOSrank + Severity, F
 plotData$StudyTreatment <- paste(plotData$StudySpecies, plotData$TRTDOSrank, sep = ': ')
 colnames(plotData) <- c('Study', 'Finding', 'Treatment','Severity', 'Count', 'StudyTreatment')
 
-plotDataMapTmp <- dcast(plotData, StudyTreatment ~ Finding, value.var = 'Count')
-for (i in 2:ncol(plotDataMapTmp)) {
-  index <- which(is.na(plotDataMapTmp[,i]))
-  plotDataMapTmp[index,i] <- 0
+#Clustering the Findings for graph
+if (ClusterAxis == T){
+  plotDataMapTmp <- dcast(plotData, StudyTreatment ~ Finding, value.var = 'Count')
+  for (i in 2:ncol(plotDataMapTmp)) {
+    index <- which(is.na(plotDataMapTmp[,i]))
+    plotDataMapTmp[index,i] <- 0
+  }
+  plotDataMap <- as.matrix(plotDataMapTmp[,2:ncol(plotDataMapTmp)])
+  row.names(plotDataMap) <- plotDataMapTmp[,1]
+  plotDataClustY <- hclust(dist((plotDataMap)))
+  heatmapOrder <- row.names(plotDataMap) <- row.names(plotDataMap)[plotDataClustY$order]
+  if (length(unique(plotData$Finding)) > 1){ 
+    plotDataClustX <- hclust(dist((t(plotDataMap)))) 
+  }
+  heatmapOrderFindings <- colnames(plotDataMap)[plotDataClustY$order]
+  plotData$StudyTreatment <- factor(plotData$StudyTreatment, levels = heatmapOrder)
+  if (length(unique(plotData$Finding)) > 1){ 
+    plotData$Finding <- factor(plotData$Finding, levels = heatmapOrderFindings)
+  } 
+} else {
+  if (length(unique(plotData$Finding)) > 1){
+    plotData$Finding <- factor(plotData$Finding)
+  }
+  plotData$StudyTreatment <- factor(plotData$StudyTreatment)
 }
-plotDataMap <- as.matrix(plotDataMapTmp[,2:ncol(plotDataMapTmp)])
-row.names(plotDataMap) <- plotDataMapTmp[,1]
-
-plotDataClustY <- hclust(dist((plotDataMap)))
-heatmapOrder <- row.names(plotDataMap) <- row.names(plotDataMap)[plotDataClustY$order]
-plotDataClustX <- hclust(dist((t(plotDataMap))))
-heatmapOrderFindings <- colnames(plotDataMap)[plotDataClustY$order]
-plotData$StudyTreatment <- factor(plotData$StudyTreatment, levels = heatmapOrder)
-plotData$Finding <- factor(plotData$Finding, levels = heatmapOrderFindings)
 plotData[['Count']] <- as.numeric(plotData[['Count']])
 
 # Reconcile Finding Names
-termFactors <- levels(plotData$Finding)
+if (length(unique(plotData$Finding)) > 1) {
+  termFactors <- levels(plotData$Finding) 
+} else{
+  termFactors <- unique(plotData$Finding)
+}
 termNames <- termFactors
 for (i in seq(length(termList))) {
   term <- as.character(termList[i])
@@ -199,10 +225,11 @@ for (i in seq(length(termList))) {
 names(termFactors) <- termNames
 plotData$Finding <- fct_recode(plotData$Finding, !!!termFactors)
 
+
 p <- ggplot(plotData) +
   geom_tile_pattern(aes(x = Finding, fill = Count, y = StudyTreatment,pattern_fill = Severity, pattern_density = Severity), 
                     pattern= 'stripe', pattern_color="black") +
-  scale_pattern_density_discrete(range=c(0,0.5))+
+  scale_pattern_density_manual(values = c("0" = 0, "1" = 0.1, "2" = 0.2, "3"=0.3, "4" = 0.4, "5"= 0.5))+
   scale_pattern_fill_brewer(palette = 3)+
   ylab('Study (Species): Treatment') + ggtitle(MISPEC) +
   scale_fill_gradient2(low = muted('blue'), high = muted('red'), name = 'Incidence') + theme_classic() +
