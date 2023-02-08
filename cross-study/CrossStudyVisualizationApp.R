@@ -301,6 +301,7 @@ server <- shinyServer(function(input, output, session) {
    organSystems <- c('LIVER', 'KIDNEY', 'HEMATOPOIETIC','ENDOCRINE','REPRODUCTIVE')
    
    #Find Selected Tests from shinyTree ouput
+   TreeSelect <- input$tree
    SelectedDomainTests <- names(unlist(get_selected(input$tree, format = "slices")))
    #Check Which Domains are Selected and update organSystems
    systemsselected <- toupper(unlist(strsplit(SelectedDomainTests,"[.]"))) 
@@ -1382,6 +1383,8 @@ server <- shinyServer(function(input, output, session) {
     }
   },height = plotHeight$X)
   
+  output$tree <- renderTree(TreeSelect) 
+                                                     
   } })
   
   #########################Original GRAPHS#######################
