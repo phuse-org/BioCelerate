@@ -43,13 +43,7 @@ BodyWeightSummary <- list()
 FWDataSummary <- list()
 defaultVal <- 350
 SEX <- 'M'
-# MIresults <- readRDS(paste0(paths[5],"MIresults.rds"))
-# LBresults <- readRDS(paste0(paths[5],"LBresults.rds"))
-# OMresults <- readRDS(paste0(paths[5],"OMresults.rds"))
-# FWData <- readRDS(paste0(paths[5],"FWData.rds"))
-# BodyWeight <- readRDS(paste0(paths[5],"BodyWeight.rds"))
-# summaryData <- readRDS(paste0(paths[5],"summaryData.rds"))
-# CompileData <- readRDS(paste0(paths[5],"CompileData.rds"))
+
 
 #Load Relevant Functions
 source('Functions/Functions.R')
@@ -164,7 +158,7 @@ ui <- dashboardPage (
               }
                 ")),
     
-    actionBttn("PLOT", label = "Re-Generate Visuals", color = "primary",
+    actionBttn("PLOT", label = "Generate Visuals", color = "primary",
                style = "jelly"),
     sidebarMenu(id='sidebar', 
                 menuItem('Filter Data Used',
@@ -287,6 +281,7 @@ ui <- dashboardPage (
 server <- shinyServer(function(input, output, session) {
   
    plotHeight <- reactiveValues(X=defaultVal)
+   numSEX <- reactiveValues(X = 1)
   
    observeEvent(input$PLOT,{
    #Remake the plot values based on User Selection
@@ -355,8 +350,10 @@ server <- shinyServer(function(input, output, session) {
    if (SEX == "M/F"){
      SEX <- c("M","F")
      plotHeight$X <- 700
+     numSEX$X <- 2
    } else {
      plotHeight$X <- 350
+     numSEX$X <- 1
    }
    
    #Select Dose Option for Visualization: 'Vehicle', 'LD','MD','HD
@@ -381,7 +378,7 @@ server <- shinyServer(function(input, output, session) {
    Rat6576 <- load.xpt.files(path = paste(homePath, paths[4], sep = '/'),
                              showProgress = F) 
    for (Gender in SEX){
-     #Create Shared Data Frame with StudyID, Species, USUBJID, SEX, and DOSES     if ('1' %in% chosenstudies){
+     #Create Shared Data Frame with StudyID, Species, USUBJID, SEX, and DOSES     
      Dog5492_dm <- data.frame(StudyID = rep("Dog 5492", length(unique(Dog5492$dm$USUBJID))),
                               Species = rep("Dog", length(unique(Dog5492$dm$USUBJID))),
                               USUBJID = Dog5492$dm$USUBJID, SEX = Dog5492$dm$SEX, ARMCD = Dog5492$dm$ARMCD)
@@ -1261,71 +1258,39 @@ server <- shinyServer(function(input, output, session) {
   })
   
   ##Radar Plots ##
-  output$SummaryRadar <- renderPlot({ #Overall Summary Radar
-    if (length(SEX) == 2){
-      SRM <- makeRadar(summaryData,'ALL', 'M')
-      SRF <- makeRadar(summaryData,'ALL','F')
-      ggdraw(plot_grid(SRM,SRF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      SR <- makeRadar(summaryData,'ALL',SEX)
-      print(SR) 
-    }
-  }, height = plotHeight$X)
+     for (i in 1:length(SEX)) { #Overall Summary Radar
+        local({
+        genders <- SEX[i]
+        output[[paste('SummaryRadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'ALL',genders)
+         return(plotData)
+        })
+        
+        output[[paste('LRadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'Liver',genders)
+           return(plotData)
+        })
+        
+        output[[paste('KRadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'Kidney',genders)
+           return(plotData)
+        })
+        output[[paste('HRadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'HEMATOPOIETIC',genders)
+           return(plotData)
+        })
+        output[[paste('ERadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'Endocrine',genders)
+           return(plotData)
+        })
+        output[[paste('RRadar',i)]] <- renderPlot({ 
+           plotData <- makeRadar(summaryData,'Reproductive',genders)
+           return(plotData)
+        })
+        
+     }) 
+  }
   
-  output$LRadar <- renderPlot({ #Liver Organ System Radar
-    if (length(SEX) == 2){
-      LRM <- makeRadar(summaryData,'Liver', 'M')
-      LRF <- makeRadar(summaryData,'Liver','F')
-      ggdraw(plot_grid(LRM,LRF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      LR <- makeRadar(summaryData,'Liver',SEX)
-      print(LR)
-    }
-  },height = plotHeight$X)
-  
-  output$KRadar <- renderPlot({ #Kidney Organ System Radar
-    if (length(SEX) == 2){
-      KRM <- makeRadar(summaryData,'Kidney', 'M')
-      KRF <- makeRadar(summaryData,'Kidney','F')
-      ggdraw(plot_grid(KRM,KRF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      KR <- makeRadar(summaryData,'Kidney',SEX)
-      print(KR)
-    }
-  },height = plotHeight$X)
-  
-  output$HRadar <- renderPlot({ #Hematopoietic Organ System Radar
-    if (length(SEX) == 2){
-      HRM <- makeRadar(summaryData,'HEMATOPOIETIC', 'M')
-      HRF <- makeRadar(summaryData,'HEMATOPOIETIC','F')
-      ggdraw(plot_grid(HRM,HRF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      HR <- makeRadar(summaryData,'HEMATOPOIETIC',SEX)
-      print(HR)
-    }
-  },height = plotHeight$X)
-  
-  output$ERadar <- renderPlot({ #Endocrine Organ System Radar
-    if (length(SEX) == 2){
-      ER <- makeRadar(summaryData,'Endocrine', 'M')
-      ERF <- makeRadar(summaryData,'Endocrine','F')
-      ggdraw(plot_grid(ER,ERF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      ER <- makeRadar(summaryData,'Endocrine',SEX)
-      print(ER)
-    }
-  },height = plotHeight$X)
-  
-  output$RRadar <- renderPlot({ #Reproductive Organ System Radar
-    if (length(SEX) == 2){
-      RR <- makeRadar(summaryData,'Reproductive', 'M')
-      RRF <- makeRadar(summaryData,'Reproductive','F')
-      ggdraw(plot_grid(RR,RRF, nrow = 2, align = 'hv',scale = .8))
-    } else {
-      RR <- makeRadar(summaryData,'Reproductive',SEX)
-      print(RR)
-    }
-  },height = plotHeight$X)
   
   ## MI Plots ##
   output$KMIplot <- renderPlot({ #KIDNEY MI PLOT
@@ -1383,164 +1348,29 @@ server <- shinyServer(function(input, output, session) {
     }
   },height = plotHeight$X)
   
-  output$tree <- renderTree(TreeSelect) 
-                                                     
+  output$tree <- renderTree(TreeSelect)
+  
   } })
   
-  #########################Original GRAPHS#######################
-  output$FWplot <- renderPlot({
-    FWP <- makeFWplot(FWData, input$FWTime,input$dose,SEX)
-    print(FWP)
-  })
-  
-  output$BWplot <- renderPlot({
-    q <- makeBWplot(BodyWeight,CompileData,input$bwMethod,input$bwMetric,input$dose,SEX)
-    print(q)
-  })
-  
-  ## OM Plots ##
-  
-  output$OMplot <- renderPlot({ #Kidney Organ Weights Graph
-   KOM <- makeOMplot(OMresults,'KIDNEY',input$omMethod,input$dose,SEX)
-   print(KOM)
-  })
-  
-  output$LOMplot <- renderPlot({ #Liver Organ Weights Graph
-    LOM <- makeOMplot(OMresults,'LIVER',input$omMethod,input$dose,SEX)
-    print(LOM)
-  })
-  
-  output$HOMplot <- renderPlot({ #Hematopoietic Organ Weights Graph
-    HOM <- makeOMplot(OMresults,'HEMATOPOIETIC',input$omMethod,input$dose,SEX)
-    print(HOM)
-  })
-  
-  output$EOMplot <-renderPlot({ #Endocrine Organ Weights Graph
-    EOM <- makeOMplot(OMresults,'ENDOCRINE',input$omMethod,input$dose,SEX)
-    print(EOM)
-  })
-  
-  output$ROMplot <-renderPlot({ #Reproductive Organ Weights Graph
-    ROM <- makeOMplot(OMresults,'REPRODUCTIVE',input$omMethod,input$dose,SEX)
-    print(ROM)
-  })
-  
-  ## LB Plots##
-  output$KSERLBplot <- renderPlot({ #Kidney Clinical Chemistry LB Graph
-    KSLB <- makeLBplot(LBresults, 'KIDNEY','SERUM',input$dose,SEX)
-    print(KSLB)
-  })
-  
-  output$KURILBplot <- renderPlot({ #Kidney Urinalysis LB Graph
-    KULB <- makeLBplot(LBresults, 'KIDNEY','URINE',input$dose,SEX)
-    print(KULB)
-  })
-  
-  output$KHEMELBplot <- renderPlot({ #Kidney Hematology LB Graph
-    KLB <- makeLBplot(LBresults, 'KIDNEY','WHOLE BLOOD',input$dose,SEX)
-    print(KLB)
-  })
-  
-  output$LSERLBplot <- renderPlot({ #Liver Clinical Chemistry LB Graph
-    LSLB <- makeLBplot(LBresults, 'LIVER','SERUM',input$dose,SEX)
-    print(LSLB)
-  })
-  
-  output$HHEMELBplot <- renderPlot({ #Hematopoietic Hematology LB Graph
-    HLB <- makeLBplot(LBresults, 'HEMATOPOIETIC','WHOLE BLOOD',input$dose,SEX)
-    print(HLB)
-  })
-  
-  output$ESERLBplot <- renderPlot({ #Endocrine Clinical Chemistry LB Graph
-    ESLB <- makeLBplot(LBresults, 'ENDOCRINE','SERUM',input$dose,SEX)
-    print(ESLB)
-  })
-  
-  output$EHEMELBPLOT <- renderPlot({ #Endocrine Hematology LB Graph
-    ELB <- makeLBplot(LBresults, 'ENDOCRINE','WHOLE BLOOD',input$dose,SEX)
-    print(ELB)
-  })
-  
-  output$RHEMELBPlot<- renderPlot({ #Reproductive Hematology LB Graph
-    RLB <- makeLBplot(LBresults, 'REPRODUCTIVE','WHOLE BLOOD',input$dose,SEX)
-    print(RLB)
-  })
-  
-  ##Radar Plots ##
-  output$SummaryRadar <- renderPlot({ #Overall Summary Radar
-    SR <- makeRadar(summaryData,'ALL',SEX)
-    print(SR)
-  })
-  
-  output$LRadar <- renderPlot({ #Liver Organ System Radar
-    LR <- makeRadar(summaryData,'Liver',SEX)
-    print(LR)
-  })
-  
-  output$KRadar <- renderPlot({ #Kidney Organ System Radar
-    KR <- makeRadar(summaryData,'Kidney',SEX)
-    print(KR)
-  })
-  
-  output$HRadar <- renderPlot({ #Kidney Organ System Radar
-    HR <- makeRadar(summaryData,'Hematopoietic',SEX)
-    print(HR)
-  })
-  
-  output$ERadar <- renderPlot({ #Endocrine Organ System Radar
-    ER <- makeRadar(summaryData,'Endocrine',SEX)
-    print(ER)
-  })
-  
-  output$RRadar <- renderPlot({ #Reproductive Organ System Radar
-    RR <- makeRadar(summaryData,'Reproductive',SEX)
-    print(RR)
-  })
-  
-  ## MI Plots ##
-  output$KMIplot <- renderPlot({ #KIDNEY MI PLOT
-    KM <- makeMIplot(MIresults,'KIDNEY',input$dose,SEX)
-    print(KM)
-  })
-  
-  output$LMIplot <- renderPlot({ #LIVER MI PLOT
-    LM <- makeMIplot(MIresults,'LIVER',input$dose,SEX)
-    print(LM)
-  })
-  
-  output$HMIplot <- renderPlot({ #HEMATOPOIETIC MI PLOT
-    HM <- makeMIplot(MIresults,'HEMATOPOIETIC',input$dose,SEX)
-    print(HM)
-  })
-  
-  output$EMIplot <- renderPlot({ #ENDOCRINE MI PLOT
-    EM <- makeMIplot(MIresults,'ENDOCRINE',input$dose,SEX)
-    print(EM)
-  })
-  
-  output$RMIplot <- renderPlot({ #REPRODUCTIVE MI PLOT
-    RM <- makeMIplot(MIresults,'REPRODUCTIVE',input$dose,SEX)
-    print(RM)
-  })
   
   #Dynamic Sizing of MI and Radar Plots
-  output$ReactSummaryRadar <- renderUI({
-    plotOutput('SummaryRadar',height = plotHeight$X, width = "100%")
+  output$ReactSummaryRadar <- renderUI({ #Generate one plot per Gender
+    lapply(paste('SummaryRadar',1:numSEX$X),plotOutput)
   })
   output$ReactLiverRadar <- renderUI({
-    plotOutput('LRadar',height = plotHeight$X, width = "100%")
+     lapply(paste('LRadar',1:numSEX$X),plotOutput)
   })
   output$ReactKidneyRadar <- renderUI({
-    plotOutput('KRadar',height = plotHeight$X, width = "100%")
+     lapply(paste('KRadar',1:numSEX$X),plotOutput)
   })
   output$ReactHemaRadar <- renderUI({
-    plotOutput('HRadar',height = plotHeight$X, width = "100%")
+     lapply(paste('HRadar',1:numSEX$X),plotOutput)
   })
   output$ReactEndoRadar <- renderUI({
-    plotOutput('ERadar',height = plotHeight$X, width = "100%")
+     lapply(paste('ERadar',1:numSEX$X),plotOutput)
   })
   output$ReactReproRadar <- renderUI({
-    plotOutput('RRadar',height = plotHeight$X, width = "100%")
+     lapply(paste('RRadar',1:numSEX$X),plotOutput)
   })
   
   output$KMIplotreactive <- renderUI({
