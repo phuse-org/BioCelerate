@@ -44,7 +44,6 @@ FWDataSummary <- list()
 defaultVal <- 350
 SEX <- 'M'
 
-
 #Load Relevant Functions
 source('Functions/Functions.R')
 source('Functions/groupSEND.R')
@@ -161,24 +160,24 @@ ui <- dashboardPage (
     actionBttn("PLOT", label = "Generate Visuals", color = "primary",
                style = "jelly"),
     sidebarMenu(id='sidebar', 
-                menuItem('Filter Data Used',
-                         checkboxGroupInput('studies', 'Study Selection:',
-                                            c(dog5492 = "Dog 5492",
-                                              dog6576 = "Dog 6576", 
-                                              rat5492 = "Rat 5492", 
-                                              rat6576 = "Rat 6576"), 
-                                            selected = c("Dog 5492","Dog 6576", "Rat 5492", "Rat 6576")),
-                         radioButtons("sex", "Sex Selection:",
-                                      c("Male" = "M",
-                                        "Female" = "F",
-                                        "Male/Female" = "M/F"), selected = 'M'),
-                         
-                         radioButtons(inputId = "dose", label = "Dose Selection:",
-                                      c("HD" = "HD", 
-                                        "MD" = "MD",
-                                        "LD" = "LD"), selected = 'HD')
-                ),
-                menuItem('Metrics Used',
+                checkboxGroupInput('studies', 'Study Selection:',
+                                   c(dog5492 = "Dog 5492",
+                                     dog6576 = "Dog 6576", 
+                                     rat5492 = "Rat 5492", 
+                                     rat6576 = "Rat 6576"), 
+                                   selected = c("Dog 5492","Dog 6576", "Rat 5492", "Rat 6576")),
+                radioButtons("sex", "Sex Selection:",
+                             c("Male" = "M",
+                               "Female" = "F",
+                               "Male/Female" = "M/F"), selected = 'M'),
+                
+                radioButtons(inputId = "dose", label = "Dose Selection:",
+                             c("HD" = "HD", 
+                               "MD" = "MD",
+                               "LD" = "LD"), selected = 'HD'),
+                menuItem('Detailed Control', startExpanded = TRUE,
+                         h5('Detailed Test Selection:')
+                         ,shinyTree("tree",checkbox = TRUE),
                          pickerInput(inputId = "AGGMethod",
                                      label = "Radar Aggregation Method",
                                      c('mean', 'animalMax','endpointMax'),
@@ -194,10 +193,8 @@ ui <- dashboardPage (
                                      c("BrainRatio", "BWRatio", "Organ"), selected = 'BrainRatio'),
                          pickerInput(inputId = "FWTime",
                                      label = "FW Time Duration",
-                                     c("Week","Day"), selected = "Week")),
-                menuItem('Detailed Organ/System Control', startExpanded = TRUE,
-                         h5('Detailed Test Selection:')
-                         ,shinyTree("tree",checkbox = TRUE)))
+                                     c("Week","Day"), selected = "Week"))
+         )
     ),
 
   dashboardBody(
@@ -355,7 +352,20 @@ server <- shinyServer(function(input, output, session) {
      plotHeight$X <- 350
      numSEX$X <- 1
    }
-   
+   #Check that Gender and Detailed Test Work
+   if ('M' %in% SEX & 'REPRODUCTIVE' %in% organSystems){
+      if (c('EPIDIDYMIS','GLAND, PROSTATE','PROSTATE','TESTIS') %in% c(MITESTCDlist,OMTESTCDlist)){
+         
+      } else {
+         showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
+      }
+   } else if ('F' %in% SEX & 'REPRODUCTIVE' %in% organSystems) {
+      if (c('CERVIX','GLAND, MAMMARY','OVARY','UTERUS','VAGINA') %in% c(MITESTCDlist,OMTESTCDlist)){
+         
+      } else {
+         showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
+      }
+   } else {
    #Select Dose Option for Visualization: 'Vehicle', 'LD','MD','HD
    Dose <- input$dose
   
@@ -1049,7 +1059,7 @@ server <- shinyServer(function(input, output, session) {
       }
       #Clear for Reset
       CompileData <- CompileData[,-which(names(CompileData) %in% c("OMSPEC","OMSTRESN"))]
-    }
+    } 
     Results <- as.data.frame(summaryResults)
       rownames(Results) <- c(paste0("Dog 6576 ", Gender), paste0("Dog 5492 ", Gender),
                              paste0("Rat 6576 ", Gender), paste0("Rat 5492 ", Gender))
@@ -1265,12 +1275,10 @@ server <- shinyServer(function(input, output, session) {
            plotData <- makeRadar(summaryData,'ALL',genders)
          return(plotData)
         })
-        
         output[[paste('LRadar',i)]] <- renderPlot({ 
            plotData <- makeRadar(summaryData,'Liver',genders)
            return(plotData)
         })
-        
         output[[paste('KRadar',i)]] <- renderPlot({ 
            plotData <- makeRadar(summaryData,'Kidney',genders)
            return(plotData)
@@ -1289,7 +1297,7 @@ server <- shinyServer(function(input, output, session) {
         })
         
      }) 
-  }
+  }}
   
   
   ## MI Plots ##
@@ -1394,105 +1402,107 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$tree <- renderTree ({
-    organSystemList <- list( 
-      'Kidney' = list(
-        'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | CREAT'= 'SERUM | CREAT',
-                                                                             'SERUM | UREAN' = 'SERUM | UREAN',
-                                                                             'SERUM | ALB' = 'SERUM | ALB',
-                                                                             'SERUM | CL' = 'SERUM | CL',
-                                                                             'SERUM | K' = 'SERUM | K',
-                                                                             'SERUM | PHOS' = 'SERUM | PHOS',
-                                                                             'SERUM | SODIUM' = 'SERUM | SODIUM'), stselected = TRUE),
-                                       'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                     'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
-                                                                     'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
-                                       'Urinanlysis' = structure(list('URINE | K'='URINE | K',
-                                                                      'URINE | SODIUM' = 'URINE | SODIUM',
-                                                                      'URINE | GLUC' = 'URINE | GLUC',
-                                                                      'URINE | SPGRAV' = 'URINE | SPGRAV',
-                                                                      'URINE | VOLUME' = 'URINE | VOLUME',
-                                                                      'URINE | PROT' = 'URINE | PROT'),stselected = TRUE)),
-        'Histopathology(MI)' = structure(list('KIDNEY' = structure('KIDNEY',stselected = TRUE),
-                                              'URETER' = structure('URETER'),
-                                              'URINARY BLADDER' = structure('URINARY BLADDER'),
-                                              'URETHRA' = structure('URETHRA'))),
-        'Organ Weight(OM)' = structure(list('KIDNEY' = structure('KIDNEY',stselected = TRUE)))),
-      'Liver' = list(
-        'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALT'= 'SERUM | ALT',
-                                                                             'SERUM | AST' = 'SERUM | AST',
-                                                                             'SERUM | ALP' = 'SERUM | ALP',
-                                                                             'SERUM | GGT' = 'SERUM | GGT',
-                                                                             'SERUM | BILI' = 'SERUM | BILI',
-                                                                             'SERUM | ALB' = 'SERUM | ALB'), stselected = TRUE)),
-        'Histopathology(MI)' = structure(list('LIVER' = structure('LIVER',stselected = TRUE),
-                                              'GALLBLADDER' = structure('GALLBLADDER'))),
-        'Organ Weight(OM)' = structure(list('LIVER' = structure('LIVER',stselected = TRUE),
-                                            'GALLBLADDER' = structure('GALLBLADDER')))
-      ),
-      'Hematopoietic' = list(
-        'Laboratory Values(LB)' = list("Hematology" = structure(list('WHOLE BLOOD | RBC'= 'WHOLE BLOOD | RBC',
-                                                                     'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
-                                                                     'WHOLE BLOOD | MCHC' = 'WHOLE BLOOD | MCHC',
-                                                                     'WHOLE BLOOD | MCH' = 'WHOLE BLOOD | MCH',
-                                                                     'WHOLE BLOOD | MCV' = 'WHOLE BLOOD | MCV',
-                                                                     'WHOLE BLOOD | RDW' = 'WHOLE BLOOD | RDW',
-                                                                     'WHOLE BLOOD | WBC' = 'WHOLE BLOOD | WBC',
-                                                                     'WHOLE BLOOD | MONO' = 'WHOLE BLOOD | MONO',
-                                                                     'WHOLE BLOOD | BASO' = 'WHOLE BLOOD | BASO',
-                                                                     'WHOLE BLOOD | EOS' = 'WHOLE BLOOD | EOS',
-                                                                     'WHOLE BLOOD | LYM' = 'WHOLE BLOOD | LYM',
-                                                                     'WHOLE BLOOD | PLAT' = 'WHOLE BLOOD | PLAT',
-                                                                     'WHOLE BLOOD | MPV' = 'WHOLE BLOOD | MPV'), stselected = TRUE)),
-        'Histopathology(MI)' = structure(list('BONE MARROW' = "BONE MARROW",
-                                              'SPLEEN' = 'SPLEEN',
-                                              'THYMUS' = 'THYMUS'), stselected = TRUE),
-        'Organ Weight(OM)' = structure(list('SPLEEN' = 'SPLEEN',
-                                            'THYMUS' = 'THYMUS'), stselected = TRUE)
-      ),
-      'Endocrine' = list(
-        'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALB'= 'SERUM | ALB',
-                                                                             'SERUM | CL' = 'SERUM | CL',
-                                                                             'SERUM | PHOS' = 'SERUM | PHOS',
-                                                                             'SERUM | SODIUM' = 'SERUM | SODIUM',
-                                                                             'SERUM | GLUC' = 'SERUM | GLUC',
-                                                                             'SERUM | CA' = 'SERUM | CA'), stselected = TRUE),
-                                       'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                     'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
-                                                                     'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
-                                       'Urinanlysis' = structure(list('URINE | CL' = 'URINE | CL',
-                                                                      'URINE | K'='URINE | K',
-                                                                      'URINE | SODIUM'='URINE | SODIUM',
-                                                                      'URINE | GLUC' = 'URINE | GLUC',
-                                                                      'URINE | SPGRAV' = 'URINE | SPGRAV',
-                                                                      'URINE | VOLUME' = 'URINE | VOLUME',
-                                                                      'URINE | PROT' = 'URINE | PROT'),stselected = TRUE)),
-        'Histopathology(MI)' = structure(list('GLAND, THYROID' = 'GLAND, THYROID',
-                                              'GLAND, ADRENAL' = 'GLAND, ADRENAL',
-                                              'GLAND, PITUITARY'='GLAND, PITUITARY',
-                                              'GLAND, PARATHYROID'='GLAND, PARATHYROID',
-                                              'PANCREAS'='PANCREAS'), stselected = TRUE),
-        'Organ Weight(OM)' = structure(list('GLAND, THYROID' = 'GLAND, THYROID',
-                                            'GLAND, ADRENAL' = 'GLAND, ADRENAL',
-                                            'GLAND, PITUITARY'='GLAND, PITUITARY',
-                                            'GLAND, PARATHYROID'='GLAND, PARATHYROID',
-                                            'PANCREAS'='PANCREAS'), stselected = TRUE)
-      ),
-      'Reproductive' = list(
-        'Laboratory Values(LB)' = list('Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                     'WHOLE BLOOD | HGB' = 'WHOLE BLOOD | HGB'),stselected = TRUE)),
-        'Histopathology(MI)' = structure(list('GLAND, PROSTATE' = structure('GLAND, PROSTATE',stselected = TRUE),
-                                              'EPIDIDYMIS' = structure('EPIDIDYMIS',stselected = TRUE),
-                                              'TESTIS' = structure('TESTIS',stselected = TRUE),
-                                             'CERVIX' = structure('CERVIX'),
-                                             'GLAND, MAMMARY' = structure('GLAND, MAMMARY'),
-                                             'OVARY' = structure("OVARY"),
-                                             'UTERUS' = structure('UTERUS'),
-                                             'VAGINA' = structure('VAGINA'))),
-        'Organ Weight(OM)' = structure(list('GLAND, PROSTATE' = structure('GLAND, PROSTATE',stselected = TRUE),
-                                            'TESTIS' = structure('TESTIS',stselected = TRUE),
-                                            'OVARY' = structure("OVARY")))
-      )
-    )
+     organSystemList <- list( 
+        'Kidney' = list(
+           'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | CREAT'= 'SERUM | CREAT',
+                                                                                'SERUM | UREAN' = 'SERUM | UREAN',
+                                                                                'SERUM | ALB' = 'SERUM | ALB',
+                                                                                'SERUM | CL' = 'SERUM | CL',
+                                                                                'SERUM | K' = 'SERUM | K',
+                                                                                'SERUM | PHOS' = 'SERUM | PHOS',
+                                                                                'SERUM | SODIUM' = 'SERUM | SODIUM'), stselected = TRUE),
+                                          'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
+                                                                        'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
+                                                                        'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
+                                          'Urinanlysis' = structure(list('URINE | K'='URINE | K',
+                                                                         'URINE | SODIUM' = 'URINE | SODIUM',
+                                                                         'URINE | GLUC' = 'URINE | GLUC',
+                                                                         'URINE | SPGRAV' = 'URINE | SPGRAV',
+                                                                         'URINE | VOLUME' = 'URINE | VOLUME',
+                                                                         'URINE | PROT' = 'URINE | PROT'),stselected = TRUE)),
+           'Histopathology(MI)' = structure(list('KIDNEY' = structure('KIDNEY',stselected = TRUE),
+                                                 'URETER' = structure('URETER'),
+                                                 'URINARY BLADDER' = structure('URINARY BLADDER'),
+                                                 'URETHRA' = structure('URETHRA'))),
+           'Organ Weight(OM)' = structure(list('KIDNEY' = structure('KIDNEY',stselected = TRUE)))),
+        'Liver' = list(
+           'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALT'= 'SERUM | ALT',
+                                                                                'SERUM | AST' = 'SERUM | AST',
+                                                                                'SERUM | ALP' = 'SERUM | ALP',
+                                                                                'SERUM | GGT' = 'SERUM | GGT',
+                                                                                'SERUM | BILI' = 'SERUM | BILI',
+                                                                                'SERUM | ALB' = 'SERUM | ALB'), stselected = TRUE)),
+           'Histopathology(MI)' = structure(list('LIVER' = structure('LIVER',stselected = TRUE),
+                                                 'GALLBLADDER' = structure('GALLBLADDER'))),
+           'Organ Weight(OM)' = structure(list('LIVER' = structure('LIVER',stselected = TRUE),
+                                               'GALLBLADDER' = structure('GALLBLADDER')))
+        ),
+        'Hematopoietic' = list(
+           'Laboratory Values(LB)' = list("Hematology" = structure(list('WHOLE BLOOD | RBC'= 'WHOLE BLOOD | RBC',
+                                                                        'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
+                                                                        'WHOLE BLOOD | MCHC' = 'WHOLE BLOOD | MCHC',
+                                                                        'WHOLE BLOOD | MCH' = 'WHOLE BLOOD | MCH',
+                                                                        'WHOLE BLOOD | MCV' = 'WHOLE BLOOD | MCV',
+                                                                        'WHOLE BLOOD | RDW' = 'WHOLE BLOOD | RDW',
+                                                                        'WHOLE BLOOD | WBC' = 'WHOLE BLOOD | WBC',
+                                                                        'WHOLE BLOOD | MONO' = 'WHOLE BLOOD | MONO',
+                                                                        'WHOLE BLOOD | BASO' = 'WHOLE BLOOD | BASO',
+                                                                        'WHOLE BLOOD | EOS' = 'WHOLE BLOOD | EOS',
+                                                                        'WHOLE BLOOD | LYM' = 'WHOLE BLOOD | LYM',
+                                                                        'WHOLE BLOOD | PLAT' = 'WHOLE BLOOD | PLAT',
+                                                                        'WHOLE BLOOD | MPV' = 'WHOLE BLOOD | MPV'), stselected = TRUE)),
+           'Histopathology(MI)' = structure(list('BONE MARROW' = "BONE MARROW",
+                                                 'SPLEEN' = 'SPLEEN',
+                                                 'THYMUS' = 'THYMUS'), stselected = TRUE),
+           'Organ Weight(OM)' = structure(list('SPLEEN' = 'SPLEEN',
+                                               'THYMUS' = 'THYMUS'), stselected = TRUE)
+        ),
+        'Endocrine' = list(
+           'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALB'= 'SERUM | ALB',
+                                                                                'SERUM | CL' = 'SERUM | CL',
+                                                                                'SERUM | PHOS' = 'SERUM | PHOS',
+                                                                                'SERUM | SODIUM' = 'SERUM | SODIUM',
+                                                                                'SERUM | GLUC' = 'SERUM | GLUC',
+                                                                                'SERUM | CA' = 'SERUM | CA'), stselected = TRUE),
+                                          'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
+                                                                        'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
+                                                                        'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
+                                          'Urinanlysis' = structure(list('URINE | CL' = 'URINE | CL',
+                                                                         'URINE | K'='URINE | K',
+                                                                         'URINE | SODIUM'='URINE | SODIUM',
+                                                                         'URINE | GLUC' = 'URINE | GLUC',
+                                                                         'URINE | SPGRAV' = 'URINE | SPGRAV',
+                                                                         'URINE | VOLUME' = 'URINE | VOLUME',
+                                                                         'URINE | PROT' = 'URINE | PROT'),stselected = TRUE)),
+           'Histopathology(MI)' = structure(list('GLAND, THYROID' = 'GLAND, THYROID',
+                                                 'GLAND, ADRENAL' = 'GLAND, ADRENAL',
+                                                 'GLAND, PITUITARY'='GLAND, PITUITARY',
+                                                 'GLAND, PARATHYROID'='GLAND, PARATHYROID',
+                                                 'PANCREAS'='PANCREAS'), stselected = TRUE),
+           'Organ Weight(OM)' = structure(list('GLAND, THYROID' = 'GLAND, THYROID',
+                                               'GLAND, ADRENAL' = 'GLAND, ADRENAL',
+                                               'GLAND, PITUITARY'='GLAND, PITUITARY',
+                                               'GLAND, PARATHYROID'='GLAND, PARATHYROID',
+                                               'PANCREAS'='PANCREAS'), stselected = TRUE)
+        ),
+        'Reproductive' = list(
+           'Laboratory Values(LB)' = list('Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
+                                                                        'WHOLE BLOOD | HGB' = 'WHOLE BLOOD | HGB'),stselected = TRUE)),
+           'Histopathology(MI)' = structure(list('GLAND, PROSTATE' = structure('GLAND, PROSTATE',stselected = TRUE),
+                                                 'EPIDIDYMIS' = structure('EPIDIDYMIS',stselected = TRUE),
+                                                 'TESTIS' = structure('TESTIS',stselected = TRUE),
+                                                 'CERVIX' = structure('CERVIX'),
+                                                 'GLAND, MAMMARY' = structure('GLAND, MAMMARY'),
+                                                 'OVARY' = structure("OVARY"),
+                                                 'UTERUS' = structure('UTERUS'),
+                                                 'VAGINA' = structure('VAGINA'))),
+           'Organ Weight(OM)' = structure(list('GLAND, PROSTATE' = structure('GLAND, PROSTATE',stselected = TRUE),
+                                               'TESTIS' = structure('TESTIS',stselected = TRUE),
+                                               'OVARY' = structure("OVARY")))
+        )
+     )
   })
+  outputOptions(output,"tree", suspendWhenHidden = FALSE)
+
 })
 shinyApp(ui = ui, server = server)
