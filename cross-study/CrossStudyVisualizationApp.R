@@ -288,7 +288,6 @@ server <- shinyServer(function(input, output, session) {
      showNotification("Two Datasets Must be selected", type = "error")
    } else {
    chosenstudies <- input$studies
-   
    #organSystems for grouping of tests
    organSystems <- c('LIVER', 'KIDNEY', 'HEMATOPOIETIC','ENDOCRINE','REPRODUCTIVE')
    
@@ -354,18 +353,19 @@ server <- shinyServer(function(input, output, session) {
    }
    #Check that Gender and Detailed Test Work
    if ('M' %in% SEX & 'REPRODUCTIVE' %in% organSystems){
-      if (c('EPIDIDYMIS','GLAND, PROSTATE','PROSTATE','TESTIS') %in% c(MITESTCDlist,OMTESTCDlist)){
-         
-      } else {
+      if (any(c('EPIDIDYMIS','GLAND, PROSTATE','PROSTATE','TESTIS') %in% c(MITESTCDlist$REPRODUCTIVE,OMTESTCDlist$REPRODUCTIVE)) == FALSE){
          showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
-      }
-   } else if ('F' %in% SEX & 'REPRODUCTIVE' %in% organSystems) {
-      if (c('CERVIX','GLAND, MAMMARY','OVARY','UTERUS','VAGINA') %in% c(MITESTCDlist,OMTESTCDlist)){
-         
-      } else {
+         return(NULL)
+         stop()
+      } 
+   } 
+   if ('F' %in% SEX & 'REPRODUCTIVE' %in% organSystems) {
+      if (any(c('CERVIX','GLAND, MAMMARY','OVARY','UTERUS','VAGINA') %in% c(MITESTCDlist$REPRODUCTIVE,OMTESTCDlist$REPRODUCTIVE)== FALSE)){
          showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
-      }
-   } else {
+         return(NULL)
+         stop()
+      } 
+   } 
    #Select Dose Option for Visualization: 'Vehicle', 'LD','MD','HD
    Dose <- input$dose
   
@@ -1297,7 +1297,7 @@ server <- shinyServer(function(input, output, session) {
         })
         
      }) 
-  }}
+  }
   
   
   ## MI Plots ##
@@ -1358,7 +1358,7 @@ server <- shinyServer(function(input, output, session) {
   
   output$tree <- renderTree(TreeSelect)
   
-  } })
+  }})
   
   
   #Dynamic Sizing of MI and Radar Plots
