@@ -1,6 +1,10 @@
 #This R File Makes an App that allows for visualization of cross-study analysis
 #of SEND Data
 
+#Need to do:
+#* Add Detailed Scoring Controls (i.e. user can determine scoring ranges)
+#* Ability to load different studies
+
 #Packages
 library(cowplot)
 library(dplyr)
@@ -329,6 +333,13 @@ server <- shinyServer(function(input, output, session) {
       MITESTCDlist[[organSystem]] <- as.character(MITESTS)
       OMTESTCDlist[[organSystem]] <- as.character(OMTESTS)
     }
+   #Specific Error Catch for BioCelerate Studies
+   if (length(MITESTCDlist$HEMATOPOIETIC) == 1 & MITESTCDlist$HEMATOPOIETIC == "BONE MARROW"){
+   showNotification("Dog 5492 Does not Have Bone Marrow MI. Need to add another MI Selection to HEMATOPOIETIC", type = "error")
+   return(NULL)
+   stop()
+   }
+   
    #End point aggregation Method (for Radar): 'mean', 'animalMax', or 'endpointMax'
    aggregationMethod <- input$AGGMethod
 
@@ -1043,13 +1054,29 @@ server <- shinyServer(function(input, output, session) {
               }
             } else if (organEndPoint == 'Histopathology') {
               preMIindex <- grep('|', colnames(ScoredDataTmp), fixed = T)
+              ScoredDataTmp2 <- ScoredDataTmp[which(ScoredDataTmp$OMSPEC %in% MITESTCDlist[[organSystem]]),]
               MIindex <- seq((max(preMIindex)+1), ncol(ScoredDataTmp))
               if (aggregationMethod == 'mean') {
-                maxEndpointData <- apply(ScoredDataTmp[,MIindex], MARGIN=1, FUN=mean, na.rm = T)
+                 if (length(MIindex) ==1){
+                  maxEndpointData <- mean(ScoredDataTmp2[,MIindex], na.rm = T)  
+                 } else {
+                  maxEndpointData <- apply(ScoredDataTmp2[,MIindex], MARGIN=1, FUN=mean, na.rm = T)  
+                 }
               } else if (aggregationMethod == 'animalMax') {
-                maxEndpointData <- apply(ScoredDataTmp[,MIindex], MARGIN=1, FUN=max, na.rm = T)
+                 if (length(MIindex) ==1){
+                  maxEndpointData <- max(ScoredDataTmp2[,MIindex], na.rm = T)     
+                 } else {
+                  maxEndpointData <- apply(ScoredDataTmp2[,MIindex], MARGIN=1, FUN=max, na.rm = T)  
+                 }
               } else if (aggregationMethod == 'endpointMax') {
-                maxEndpointData <- apply(ScoredDataTmp[,MIindex], MARGIN=2, FUN=max, na.rm = T)
+                 if (length(MIindex) == 1){
+                    maxEndpointData <- max(ScoredDataTmp2[,MIindex], na.rm = T) 
+                 } else {
+                    maxEndpointData <- apply(ScoredDataTmp2[,MIindex], MARGIN=2, FUN=max, na.rm = T)  
+                 }
+              }
+              if (identical(maxEndpointData, integer(0)) == TRUE){ #Error Catch for missing values in studies
+                 maxEndpointData <- 0
               }
               meanEndpointValue <- mean(as.numeric(maxEndpointData))
               summaryResults[[organSystem]]$MI <- c(summaryResults[[organSystem]]$MI, meanEndpointValue)
