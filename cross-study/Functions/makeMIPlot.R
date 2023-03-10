@@ -24,7 +24,7 @@ makeMIplot <- function(MIresults, OrganSystem, Dose, Gender){
     Heatmap <- ggplot(MIplotData) +
       geom_tile_pattern(aes(x = Finding, fill = Count, y = Treatment,
                             pattern_fill = MISEV, pattern_density = MISEV),
-                        pattern= 'stripe', pattern_color="black") +
+                        pattern= 'stripe', pattern_color="black", color = "grey") +
       scale_pattern_density_manual(values = c("0" = 0, "1" = 0.1, "2" = 0.2, "3"=0.3, "4" = 0.4, "5"= 0.5))+
       scale_pattern_fill_brewer(palette = 3)+ 
       ylab('Study (Species): Treatment') + 
