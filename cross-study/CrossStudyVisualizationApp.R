@@ -4,7 +4,7 @@
 #Need to do:
 #* Add Detailed Scoring Controls (i.e. user can determine scoring ranges)
 #* Ability to load different studies
-
+#* 
 #Packages
 library(cowplot)
 library(dplyr)
@@ -1140,11 +1140,11 @@ server <- shinyServer(function(input, output, session) {
   
   output$BWplot <- renderPlot({
     if (length(SEX) == 2){
-      q <- makeBWplot(BodyWeightSummary$M,CompileDataSummary$M,input$bwMethod,input$bwMetric,input$dose,'M')
-      t <- makeBWplot(BodyWeightSummary$F,CompileDataSummary$F,input$bwMethod,input$bwMetric,input$dose,'F')
+      q <- makeBWplot(BodyWeightSummary$M,input$bwMethod,input$bwMetric,input$dose,'M')
+      t <- makeBWplot(BodyWeightSummary$F,input$bwMethod,input$bwMetric,input$dose,'F')
       print(ggdraw(plot_grid(q,t))) 
     } else {
-      q <- makeBWplot(BodyWeight,CompileData,input$bwMethod,input$bwMetric,input$dose,SEX)
+      q <- makeBWplot(BodyWeight,input$bwMethod,input$bwMetric,input$dose,SEX)
       print(q) 
     }
   })
