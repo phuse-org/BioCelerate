@@ -189,15 +189,9 @@ ui <- dashboardPage (
                          pickerInput(inputId = 'bwMethod',
                                      label = "BW Method",
                                      c("BW","TERMBW"), selected = 'BW'),
-                         pickerInput(inputId = 'bwMetric',
-                                     label = "BW Metric", 
-                                     c("zScore","PercentChange"), selected = 'PercentChange'),
                          pickerInput(inputId = 'omMethod',
                                      label = "OM Ratio Method", 
-                                     c("BrainRatio", "BWRatio", "Organ"), selected = 'BrainRatio'),
-                         pickerInput(inputId = "FWTime",
-                                     label = "FW Time Duration",
-                                     c("Week","Day"), selected = "Week"))
+                                     c("BrainRatio", "BWRatio", "Organ"), selected = 'BrainRatio'))
          )
     ),
 
@@ -209,8 +203,14 @@ ui <- dashboardPage (
       tabPanel('Overall',
                uiOutput('ReactSummaryRadar')),
       tabPanel('Body Weight',
-               plotOutput('FWplot'),
-               plotOutput('BWplot')
+               column(width = 5,pickerInput(inputId = 'bwMetric',
+                           label = "BW Metric", 
+                           c("zScore","PercentChange"), selected = 'PercentChange')),
+               column(width = 5,pickerInput(inputId = "FWTime",
+                           label = "FW Time Duration",
+                           c("Week","Day"), selected = "Week")),
+               column(width = 10,plotOutput('FWplot')),
+               column(width = 10,plotOutput('BWplot'))
       ),
       tabPanel('Kidney',
                tabsetPanel(
@@ -344,11 +344,7 @@ server <- shinyServer(function(input, output, session) {
    aggregationMethod <- input$AGGMethod
 
    #BW Control Variables
-   BWMetric <- input$bwMetric
    BWMethod <- input$bwMethod
-   
-  #FW Visualization Data Duration: Day or Week
-   FWVisual <- input$FWTime
    
    #OM Metric: BrainRatio, BWRatio, or Organ
    OMMetric <- input$omMethod
