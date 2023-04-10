@@ -7,18 +7,17 @@
 
 #Requires Dose and Gender
 
-makeBWplot <- function(BodyWeight,CompileData,BWMethod, BWMetric, Dose, Gender){
+makeBWplot <- function(BodyWeight,BWMethod, BWMetric, Dose, Gender){
 
   
   if (BWMethod == "BW"){
     if (BWMetric == 'zScore'){
-      BWplotData <- merge(BodyWeight, CompileData[,c("USUBJID", "Species")], by = "USUBJID")  
+      BWplotData <- BodyWeight
+      BWplotData$Species <- word(BodyWeight$StudyID,1)
       BWplotData$BWzScore <- NA
-      CompileData$BWzScore <- NA
       for (study in unique(BWplotData$StudyID)){
         StudyWeight <- BWplotData[which(BWplotData$StudyID == study),]
         stdyidx <- which(BWplotData$StudyID %in% study)
-        compidx <- which(CompileData$StudyID %in% study)
         for (day in unique(StudyWeight$VISITDY)){
           DayWeight <- StudyWeight[which(StudyWeight$VISITDY == day),]
           DYidx <- which(BWplotData$StudyID %in% study & BWplotData$VISITDY == day)
@@ -30,11 +29,11 @@ makeBWplot <- function(BodyWeight,CompileData,BWMethod, BWMetric, Dose, Gender){
       }
       
     } else if (BWMetric == "PercentChange"){
-      BWplotData <- merge(BodyWeight, CompileData[,c("USUBJID", "Species")], by = "USUBJID") 
+      BWplotData <- BodyWeight
+      BWplotData$Species <- word(BodyWeight$StudyID,1)
       for (study in unique(BWplotData$StudyID)){
         StudyWeight <- BWplotData[which(BWplotData$StudyID == study),]
         stdyidx <- which(BWplotData$StudyID %in% study)
-        compidx <- which(CompileData$StudyID %in% study)
         for (day in unique(StudyWeight$VISITDY)){
           DayWeight <- StudyWeight[which(StudyWeight$VISITDY == day),]
           DYidx <- which(BWplotData$StudyID %in% study & BWplotData$VISITDY == day)
@@ -72,7 +71,9 @@ makeBWplot <- function(BodyWeight,CompileData,BWMethod, BWMetric, Dose, Gender){
   BWplotData$Compound <- word(BWplotData$StudyID,2)
   BWplotData <- BWplotData[which(BWplotData$ARMCD == Dose),] 
   if (Gender == "M"){
-    BWplotData <- BWplotData[-which(BWplotData$USUBJID %in% c("87497-4001", "87497-4002", "87497-4003")),] #manually excluding some animals not caught earlier
+    if (any(unique(BWplotData$USUBJID) %in% c("87497-4001", "87497-4002", "87497-4003")) == TRUE){
+      BWplotData <- BWplotData[-which(BWplotData$USUBJID %in% c("87497-4001", "87497-4002", "87497-4003")),] #manually excluding some animals 
+    }
   }
   if (BWMethod == "BW"){
     if (BWMetric == 'zScore') {
