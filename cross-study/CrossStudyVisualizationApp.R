@@ -225,7 +225,13 @@ ui <- dashboardPage (
                  tabPanel('Organ Weights',
                           plotOutput('OMplot')),
                  tabPanel('Histopathology',
-                          uiOutput('KMIplotreactive'))
+                          column(width = 5,pickerInput(inputId = 'KMIClustY',
+                                      label = "Cluster the Y Axis?", 
+                                      c("NO","YES"), selected = 'NO')),
+                          column(width = 5,pickerInput(inputId = 'KMIClustX',
+                                      label = "Cluster the X Axis?", 
+                                      c("NO","YES"), selected = 'NO')),
+                          column(width = 10,uiOutput('KMIplotreactive')))
                )
       ),
       tabPanel('Liver',
@@ -237,7 +243,13 @@ ui <- dashboardPage (
                  tabPanel('Organ Weights',
                           plotOutput('LOMplot')),
                  tabPanel('Histopathology',
-                          uiOutput('LMIplotreactive'))),
+                          column(width = 5,pickerInput(inputId = 'LMIClustY',
+                                                       label = "Cluster the Y Axis?", 
+                                                       c("NO","YES"), selected = 'NO')),
+                          column(width = 5,pickerInput(inputId = 'LMIClustX',
+                                                       label = "Cluster the X Axis?", 
+                                                       c("NO","YES"), selected = 'NO')),
+                          column(width = 10, uiOutput('LMIplotreactive')))),
       ),
       tabPanel('Hematopoietic',
                tabsetPanel(
@@ -248,31 +260,70 @@ ui <- dashboardPage (
                  tabPanel('Organ Weights',
                           plotOutput('HOMplot')),
                  tabPanel('Histopathology',
-                          uiOutput('HMIplotreactive'))
+                          column(width = 5,pickerInput(inputId = 'HMIClustY',
+                                                       label = "Cluster the Y Axis?", 
+                                                       c("NO","YES"), selected = 'NO')),
+                          column(width = 5,pickerInput(inputId = 'HMIClustX',
+                                                       label = "Cluster the X Axis?", 
+                                                       c("NO","YES"), selected = 'NO')),
+                          column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                               uiOutput('HMIplotreactive'), 
+                                   uiOutput('HMIplotreactive2')))),
+                          column(width=10,fluidRow(uiOutput('HMIplotreactive3'))))
                )),
       tabPanel('Endocrine',
                tabsetPanel(
-                 tabPanel('Overall',
-                          uiOutput('ReactEndoRadar')),
-                 tabPanel('Clinical Chemistry',
-                          plotOutput('ESERLBplot')),
-                 tabPanel('Hematology',
-                          plotOutput('EHEMELBPLOT')),
-                 tabPanel('Organ Weights',
-                          plotOutput('EOMplot',height = 600)),
-                 tabPanel('Histopathology',
-                          uiOutput('EMIplotreactive'))
-               )),
+                  tabPanel('Overall',
+                           uiOutput('ReactEndoRadar')),
+                  tabPanel('Clinical Chemistry',
+                           plotOutput('ESERLBplot')),
+                  tabPanel('Hematology',
+                           plotOutput('EHEMELBPLOT')),
+                  tabPanel('Organ Weights',
+                           plotOutput('EOMplot',height = 600)),
+                  tabPanel('Histopathology',
+                           column(width = 5,pickerInput(inputId = 'EMIClustY',
+                                                        label = "Cluster the Y Axis?", 
+                                                        c("NO","YES"), selected = 'NO')),
+                           column(width = 5,pickerInput(inputId = 'EMIClustX',
+                                                        label = "Cluster the X Axis?", 
+                                                        c("NO","YES"), selected = 'NO')),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('EMIplotreactive'),
+                                                uiOutput('EMIplotreactive2')))),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('EMIplotreactive3'),
+                                                uiOutput('EMIplotreactive4')))),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('EMIplotreactive5'))))
+                  ))),
       tabPanel('Reproductive',
                tabsetPanel(
-                 tabPanel('Overall',
-                          uiOutput('ReactReproRadar')),
-                 tabPanel('Hematology',
-                          plotOutput('RHEMELBPlot')),
-                 tabPanel('Organ Weights',
-                          plotOutput('ROMplot',height = 600)),
-                 tabPanel('Histopathology',
-                          uiOutput('RMIplotreactive'))
+                  tabPanel('Overall',
+                           uiOutput('ReactReproRadar')),
+                  tabPanel('Hematology',
+                           plotOutput('RHEMELBPlot')),
+                  tabPanel('Organ Weights',
+                           plotOutput('ROMplot',height = 600)),
+                  tabPanel('Histopathology',
+                           column(width = 5,pickerInput(inputId = 'RMIClustY',
+                                                        label = "Cluster the Y Axis?", 
+                                                        c("NO","YES"), selected = 'NO')),
+                           column(width = 5,pickerInput(inputId = 'RMIClustX',
+                                                        label = "Cluster the X Axis?", 
+                                                        c("NO","YES"), selected = 'NO')),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('RMIplotreactive'),
+                                                uiOutput('RMIplotreactive2')))),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('RMIplotreactive3'),
+                                                uiOutput('RMIplotreactive4')))),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('RMIplotreactive5'),
+                                                uiOutput('RMIplotreactive6')))),
+                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                uiOutput('RMIplotreactive7'),
+                                                uiOutput('RMIplotreactive8')))))
                ))
     )
   ),
@@ -280,90 +331,90 @@ ui <- dashboardPage (
 
 ############################### Server #######################################
 server <- shinyServer(function(input, output, session) {
-  
+   
    plotHeight <- reactiveValues(X=defaultVal)
    numSEX <- reactiveValues(X = 1)
-  
+   
    observeEvent(input$PLOT,{
-   #Remake the plot values based on User Selection
-   ####Controllable Variables###############
-   #Studies Chosen 
-   if (length(input$studies)<2){
-     showNotification("Two Datasets Must be selected", type = "error")
-   } else {
-   chosenstudies <- input$studies
-   #organSystems for grouping of tests
-   organSystems <- c('LIVER', 'KIDNEY', 'HEMATOPOIETIC','ENDOCRINE','REPRODUCTIVE')
-   
-   #Find Selected Tests from shinyTree ouput
-   TreeSelect <- input$tree
-   SelectedDomainTests <- names(unlist(get_selected(input$tree, format = "slices")))
-   #Check Which Domains are Selected and update organSystems
-   systemsselected <- toupper(unlist(strsplit(SelectedDomainTests,"[.]"))) 
-   organSystems <- toupper(unique(systemsselected[which(systemsselected %in% organSystems)]))
-   #Convert Selected Tests to usable format
-   SelectedLBTests <- SelectedDomainTests[which(grepl("Laboratory",SelectedDomainTests) == TRUE)]
-   SelectedOMTests <- SelectedDomainTests[which(grepl("Weight",SelectedDomainTests) == TRUE)]
-   SelectedMITests <- SelectedDomainTests[which(grepl("Histopathology",SelectedDomainTests) == TRUE)]
-   #Remove all but Lowest Levels of Tree (Values which have 3 '.')
-   SelectedLBTests <- SelectedLBTests[which(str_count(SelectedLBTests, "[.]") == 3)]
-   SelectedMITests <- SelectedMITests[which(str_count(SelectedMITests, "[.]") == 2)]
-   SelectedOMTests <- SelectedOMTests[which(str_count(SelectedOMTests, "[.]") == 2)]
-   SelectedLBTests <- as.data.frame(strsplit(SelectedLBTests,"[.]"))
-   SelectedMITests <- as.data.frame(strsplit(SelectedMITests,"[.]"))
-   SelectedOMTests <- as.data.frame(strsplit(SelectedOMTests,"[.]"))
-   SelectedLBTests <- SelectedLBTests[c(1,4),]
-   SelectedMITests <- SelectedMITests[c(1,3),]
-   SelectedOMTests <- SelectedOMTests[c(1,3),]
-   SelectedLBTests <- t(SelectedLBTests)
-   SelectedOMTests <- t(SelectedOMTests)
-   SelectedMITests <- t(SelectedMITests)
-   rownames(SelectedLBTests) <- NULL
-   rownames(SelectedOMTests) <- NULL
-   rownames(SelectedMITests) <- NULL
-   #Update organTESTCDlist by separating by organsystem 
-    for (organSystem in organSystems){
-      #Limit to organ System
-      Tests <- SelectedLBTests[which(toupper(SelectedLBTests[,1]) %in% organSystem),2]
-      MITESTS <- SelectedMITests[which(toupper(SelectedMITests[,1]) %in% organSystem),2]
-      OMTESTS <- SelectedOMTests[which(toupper(SelectedOMTests[,1]) %in% organSystem),2]
-      #update relavant organTESTCDlist
-      organTESTCDlist[[organSystem]] <- Tests
-      ## Update MITESTCDlist FOR OM AND MI using dataframes made above
-      MITESTCDlist[[organSystem]] <- as.character(MITESTS)
-      OMTESTCDlist[[organSystem]] <- as.character(OMTESTS)
-    }
-   #Specific Error Catch for BioCelerate Studies
-   if (length(MITESTCDlist$HEMATOPOIETIC) == 1 & MITESTCDlist$HEMATOPOIETIC == "BONE MARROW"){
-   showNotification("Dog 5492 Does not Have Bone Marrow MI. Need to add another MI Selection to HEMATOPOIETIC", type = "error")
-   return(NULL)
-   stop()
-   }
-   
-   #End point aggregation Method (for Radar): 'mean', 'animalMax', or 'endpointMax'
-   aggregationMethod <- input$AGGMethod
-
-   #BW Control Variables
-   BWMethod <- input$bwMethod
-   
-   #OM Metric: BrainRatio, BWRatio, or Organ
-   OMMetric <- input$omMethod
-  
-   SEX <- input$sex
-   if (SEX == "M/F"){
-     SEX <- c("M","F")
-     plotHeight$X <- 700
-     numSEX$X <- 2
-   } else {
-     plotHeight$X <- 350
-     numSEX$X <- 1
-   }
-   #Check that Gender and Detailed Test Work
-   if ('M' %in% SEX & 'REPRODUCTIVE' %in% organSystems){
-      if (any(c('EPIDIDYMIS','GLAND, PROSTATE','PROSTATE','TESTIS') %in% c(MITESTCDlist$REPRODUCTIVE,OMTESTCDlist$REPRODUCTIVE)) == FALSE){
-         showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
-         return(NULL)
-         stop()
+      #Remake the plot values based on User Selection
+      ####Controllable Variables###############
+      #Studies Chosen 
+      if (length(input$studies)<2){
+         showNotification("Two Datasets Must be selected", type = "error")
+      } else {
+         chosenstudies <- input$studies
+         #organSystems for grouping of tests
+         organSystems <- c('LIVER', 'KIDNEY', 'HEMATOPOIETIC','ENDOCRINE','REPRODUCTIVE')
+         
+         #Find Selected Tests from shinyTree ouput
+         TreeSelect <- input$tree
+         SelectedDomainTests <- names(unlist(get_selected(input$tree, format = "slices")))
+         #Check Which Domains are Selected and update organSystems
+         systemsselected <- toupper(unlist(strsplit(SelectedDomainTests,"[.]"))) 
+         organSystems <- toupper(unique(systemsselected[which(systemsselected %in% organSystems)]))
+         #Convert Selected Tests to usable format
+         SelectedLBTests <- SelectedDomainTests[which(grepl("Laboratory",SelectedDomainTests) == TRUE)]
+         SelectedOMTests <- SelectedDomainTests[which(grepl("Weight",SelectedDomainTests) == TRUE)]
+         SelectedMITests <- SelectedDomainTests[which(grepl("Histopathology",SelectedDomainTests) == TRUE)]
+         #Remove all but Lowest Levels of Tree (Values which have 3 '.')
+         SelectedLBTests <- SelectedLBTests[which(str_count(SelectedLBTests, "[.]") == 3)]
+         SelectedMITests <- SelectedMITests[which(str_count(SelectedMITests, "[.]") == 2)]
+         SelectedOMTests <- SelectedOMTests[which(str_count(SelectedOMTests, "[.]") == 2)]
+         SelectedLBTests <- as.data.frame(strsplit(SelectedLBTests,"[.]"))
+         SelectedMITests <- as.data.frame(strsplit(SelectedMITests,"[.]"))
+         SelectedOMTests <- as.data.frame(strsplit(SelectedOMTests,"[.]"))
+         SelectedLBTests <- SelectedLBTests[c(1,4),]
+         SelectedMITests <- SelectedMITests[c(1,3),]
+         SelectedOMTests <- SelectedOMTests[c(1,3),]
+         SelectedLBTests <- t(SelectedLBTests)
+         SelectedOMTests <- t(SelectedOMTests)
+         SelectedMITests <- t(SelectedMITests)
+         rownames(SelectedLBTests) <- NULL
+         rownames(SelectedOMTests) <- NULL
+         rownames(SelectedMITests) <- NULL
+         #Update organTESTCDlist by separating by organsystem 
+         for (organSystem in organSystems){
+            #Limit to organ System
+            Tests <- SelectedLBTests[which(toupper(SelectedLBTests[,1]) %in% organSystem),2]
+            MITESTS <- SelectedMITests[which(toupper(SelectedMITests[,1]) %in% organSystem),2]
+            OMTESTS <- SelectedOMTests[which(toupper(SelectedOMTests[,1]) %in% organSystem),2]
+            #update relavant organTESTCDlist
+            organTESTCDlist[[organSystem]] <- Tests
+            ## Update MITESTCDlist FOR OM AND MI using dataframes made above
+            MITESTCDlist[[organSystem]] <- as.character(MITESTS)
+            OMTESTCDlist[[organSystem]] <- as.character(OMTESTS)
+         }
+         #Specific Error Catch for BioCelerate Studies
+         if (length(MITESTCDlist$HEMATOPOIETIC) == 1 & MITESTCDlist$HEMATOPOIETIC == "BONE MARROW"){
+            showNotification("Dog 5492 Does not Have Bone Marrow MI. Need to add another MI Selection to HEMATOPOIETIC", type = "error")
+            return(NULL)
+            stop()
+         }
+         
+         #End point aggregation Method (for Radar): 'mean', 'animalMax', or 'endpointMax'
+         aggregationMethod <- input$AGGMethod
+         
+         #BW Control Variables
+         BWMethod <- input$bwMethod
+         
+         #OM Metric: BrainRatio, BWRatio, or Organ
+         OMMetric <- input$omMethod
+         
+         SEX <- input$sex
+         if (SEX == "M/F"){
+            SEX <- c("M","F")
+            plotHeight$X <- 700
+            numSEX$X <- 2
+         } else {
+            plotHeight$X <- 350
+            numSEX$X <- 1
+         }
+         #Check that Gender and Detailed Test Work
+         if ('M' %in% SEX & 'REPRODUCTIVE' %in% organSystems){
+            if (any(c('EPIDIDYMIS','GLAND, PROSTATE','PROSTATE','TESTIS') %in% c(MITESTCDlist$REPRODUCTIVE,OMTESTCDlist$REPRODUCTIVE)) == FALSE){
+               showNotification("REPRODUCTIVE must include MI/OM from Sex Selected", type = "error")
+               return(NULL)
+               stop()
       } 
    } 
    if ('F' %in% SEX & 'REPRODUCTIVE' %in% organSystems) {
@@ -634,10 +685,10 @@ server <- shinyServer(function(input, output, session) {
        MIDOMAIN <-MITESTCDlist[[organSystem]]
        Organ <- OMTESTCDlist[[organSystem]]
        #Make DataFrame to hold MI Information 
-       MIData <-Dog5492$mi[which(Dog5492$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV")]
-       MIData <- rbind(MIData, Dog6576$mi[which(Dog6576$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV")],
-                       Rat5492$mi[which(Rat5492$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV")],
-                       Rat6576$mi[which(Rat6576$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV")])
+       MIData <-Dog5492$mi[which(Dog5492$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV","MISPEC")]
+       MIData <- rbind(MIData, Dog6576$mi[which(Dog6576$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV","MISPEC")],
+                       Rat5492$mi[which(Rat5492$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV","MISPEC")],
+                       Rat6576$mi[which(Rat6576$mi$MISPEC %in% MIDOMAIN), c("USUBJID", "MISTRESC","MISEV","MISPEC")])
        gsub(pattern = 'Tension lipidosis', replacement = 'Tension Lipidosis', MIData$MISTRESC)
        MIData$MISTRESC <- toupper(MIData$MISTRESC)
        #Convert Severity
@@ -680,6 +731,8 @@ server <- shinyServer(function(input, output, session) {
        CompileData <- merge(CompileData, OrganWeights, by = "USUBJID") 
        
       #Combine Levels on Findings
+      MIData$MISTRESC <- as.factor(MIData$MISTRESC)
+      levels(MIData$MISTRESC)[levels(MIData$MISTRESC) == "CELL DEBRIS"] <- "CELLULAR DEBRIS"
       levels(MIData$MISTRESC)[levels(MIData$MISTRESC) == "Infiltration, mixed cell"] <- "Infiltrate"
       levels(MIData$MISTRESC)[levels(MIData$MISTRESC) == "Infiltration, mononuclear cell"] <- "Infiltrate"
       levels(MIData$MISTRESC)[levels(MIData$MISTRESC) == "Fibrosis"] <- "Fibroplasia/Fibrosis"
@@ -801,8 +854,9 @@ server <- shinyServer(function(input, output, session) {
       LBresults[[Group]][[Gender]] <- LBData
 
   ########## MI Data ###############
+      
       #Merge Severity MI Data into Compile Data
-      MIIncidence <-MIData[,1:2]
+      MIIncidencePRIME <-MIData[,c(1,2,4)] ##Keeps MISPEC
       Severity <- merge(MIData, CompileData[,c("USUBJID", "StudyID", "Species", "ARMCD")])
       MIData <- dcast(MIData, USUBJID ~ MISTRESC, value.var = "MISEV")
       MIData[is.na(MIData)] <- "0" #Fill NAs with Zero
@@ -815,8 +869,12 @@ server <- shinyServer(function(input, output, session) {
       }
 
       #Calculate Incidence per group for MI Data
-      MIIncidence <- merge(MIIncidence, unique(CompileData[,c("USUBJID", "StudyID","ARMCD")]), by = "USUBJID")
-      groups <- paste0(MIIncidence$StudyID," ", MIIncidence$ARMCD)
+      MIIncidencePRIME <- merge(MIIncidencePRIME, unique(CompileData[,c("USUBJID", "StudyID","ARMCD")]), by = "USUBJID")
+      groups <- paste0(MIIncidencePRIME$StudyID," ", MIIncidencePRIME$ARMCD)
+      #HAVE IT THROUGH ORGANS HERE
+      for (MISPEC in unique(MIIncidencePRIME$MISPEC) ){
+      MIIncidence <- MIIncidencePRIME[which(MIIncidencePRIME$MISPEC %in% MISPEC),c("USUBJID","MISTRESC", "StudyID","ARMCD")]
+      
       GroupIncid <- data.frame(Treatment = NA,
                                Sex = NA,
                                Finding = NA,
@@ -825,7 +883,6 @@ server <- shinyServer(function(input, output, session) {
       for (Study in unique(MIIncidence$StudyID)){
         for (sex in c('M','F')) {
           StudyMI <- MIIncidence[which(MIIncidence$StudyID==Study),]
-
           StudyGroupIncid <- data.frame(Treatment = NA,
                                         Sex = NA,
                                         Finding = NA,
@@ -883,11 +940,11 @@ server <- shinyServer(function(input, output, session) {
       MIplotData$Finding <- str_replace_all(MIplotData$Finding, rep_str)
       #Filter for Parameters
       MIplotData$Dose <- word(MIplotData$Treatment,3)
-
-      #SAVE MIplotData Per Gender and Dose
-      MIresults[[Group]][[Gender]]<- MIplotData
+      
+      #SAVE MIplotData Per Gender and Dose AND ORGAN
+      MIresults[[Group]][[Gender]][[MISPEC]]<- MIplotData
+      }
       CompileDataSummary[[Gender]] <- CompileData
-
   ####################################### Scoring Portion #########################
 
       #Score the BW Domain based on breaks
@@ -1096,10 +1153,12 @@ server <- shinyServer(function(input, output, session) {
     summaryData[,organSystem] <- Tmp
   }
   summaryData <- t(summaryData)
-  #Rename 'BW' as 'Body Weight'
+  #Rename 'BW' as 'Body Weight' and add 'LB' to single LB source names
   rownames(summaryData)[which(rownames(summaryData) =="BW")] <- "BODY WEIGHT"
-  
-  #Edit Data to Account for chosen studies
+  rownames(summaryData)[which(rownames(summaryData) =="LIVER.SERUM")] <- "LIVER.LB.SERUM"
+  rownames(summaryData)[which(rownames(summaryData) =="HEMATOPOIETIC.WHOLE.BLOOD")] <- "HEMATOPOIETIC.LB.WHOLE.BLOOD"
+  rownames(summaryData)[which(rownames(summaryData) =="REPRODUCTIVE.WHOLE.BLOOD")] <- "REPRODUCTIVE.LB.WHOLE.BLOOD"
+   #Edit Data to Account for chosen studies
   #Summary Data
   colschosen <- which(word(colnames(summaryData),1,2) %in% chosenstudies)
   summaryData <- summaryData[,colschosen]
@@ -1116,8 +1175,11 @@ server <- shinyServer(function(input, output, session) {
     CompileDataSummary[[sex]] <- CompileDataSummary[[sex]][which(CompileDataSummary[[sex]]$StudyID %in% chosenstudies),]
     for (ORGAN in organSystems){
       OMresults[[ORGAN]][[sex]] <- OMresults[[ORGAN]][[sex]][which(OMresults[[ORGAN]][[sex]]$StudyID %in% chosenstudies),]
-      MIresults[[ORGAN]][[sex]] <- MIresults[[ORGAN]][[sex]][which(word(MIresults[[ORGAN]][[sex]]$Treatment,1,2) %in% chosenstudies),]
       LBresults[[ORGAN]][[sex]] <- LBresults[[ORGAN]][[sex]][which(LBresults[[ORGAN]][[sex]]$StudyID %in% chosenstudies),]
+      #Fix MI to loop through all possible organs for MIResults to preoperly remove studies
+      for ( MI in names(MIresults[[ORGAN]][[sex]])){
+      MIresults[[ORGAN]][[sex]][[MI]] <- MIresults[[ORGAN]][[sex]][[MI]][which(word(MIresults[[ORGAN]][[sex]][[MI]]$Treatment,1,2) %in% chosenstudies),]
+      }
     } 
   }
   print('DONE')
@@ -1326,58 +1388,240 @@ server <- shinyServer(function(input, output, session) {
   ## MI Plots ##
   output$KMIplot <- renderPlot({ #KIDNEY MI PLOT
     if (length(SEX) == 2){
-      KM <- makeMIplot(MIresults,'KIDNEY',input$dose,'M')
-      KM2 <- makeMIplot(MIresults,'KIDNEY',input$dose,'F')
+      KM <- makeMIplot(MIresults,'KIDNEY','KIDNEY',input$dose,'M',
+                       input$KMIClustY, input$KMIClustX)
+      KM2 <- makeMIplot(MIresults,'KIDNEY','KIDNEY',input$dose,'F',
+                        input$KMIClustY, input$KMIClustX)
       print(grid.arrange(KM,KM2))
     } else {
-      KM <- makeMIplot(MIresults,'KIDNEY',input$dose,SEX)
+      KM <- makeMIplot(MIresults,'KIDNEY','KIDNEY',input$dose,SEX,
+                       input$KMIClustY, input$KMIClustX)
       print(KM)
     }
   }, height = plotHeight$X)
   
   output$LMIplot <- renderPlot({ #LIVER MI PLOT
     if (length(SEX) == 2){
-      LM <- makeMIplot(MIresults,'LIVER',input$dose,'M')
-      LM2 <- makeMIplot(MIresults,'LIVER',input$dose,'F')
+      LM <- makeMIplot(MIresults,'LIVER','LIVER',input$dose,'M',
+                       input$LMIClustY, input$LMIClustX)
+      LM2 <- makeMIplot(MIresults,'LIVER','LIVER',input$dose,'F',
+                        input$LMIClustY, input$LMIClustX)
       print(grid.arrange(LM,LM2))
     } else {
-      LM <- makeMIplot(MIresults,'LIVER',input$dose,SEX)
+      LM <- makeMIplot(MIresults,'LIVER','LIVER',input$dose,SEX,
+                       input$LMIClustY, input$LMIClustX)
       print(LM)
     }
   }, height = plotHeight$X)
   
-  output$HMIplot <- renderPlot({ #HEMATOPOIETIC MI PLOT
+  output$HMIplotSpleen <- renderPlot({ #HEMATOPOIETIC SPLEEN MI PLOT
     if (length(SEX) == 2){
-      HM <- makeMIplot(MIresults,'HEMATOPOIETIC',input$dose,'M')
-      HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',input$dose,'F')
+       if ("SPLEEN" %in% MITESTCDlist$HEMATOPOIETIC){
+      HM <- makeMIplot(MIresults,'HEMATOPOIETIC',"SPLEEN",input$dose,'M',
+                       input$HMIClustY, input$HMIClustX)
+      HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',"SPLEEN",input$dose,'F',
+                        input$HMIClustY, input$HMIClustX)
       print(grid.arrange(HM,HM2))
+       }
     } else {
-      HM <- makeMIplot(MIresults,'HEMATOPOIETIC',input$dose,SEX)
-      print(HM)
+      if ("SPLEEN" %in% MITESTCDlist$HEMATOPOIETIC){
+         HMS <- makeMIplot(MIresults,'HEMATOPOIETIC',"SPLEEN",input$dose,SEX,
+                           input$HMIClustY, input$HMIClustX)  
+         print(HMS)
+      }
     }
   },height = plotHeight$X)
   
-  output$EMIplot <- renderPlot({ #ENDOCRINE MI PLOT
-    if (length(SEX) == 2){
-      EM <- makeMIplot(MIresults,'ENDOCRINE',input$dose,'M')
-      EM2 <- makeMIplot(MIresults,'ENDOCRINE',input$dose,'F')
-      print(grid.arrange(EM,EM2))
-    } else {
-      EM <- makeMIplot(MIresults,'ENDOCRINE',input$dose,SEX)
-      print(EM)
-    }
+  output$HMIplotBM <- renderPlot({ #HEMATOPOIETIC BONE MARROW MI PLOT
+     if (length(SEX) == 2){
+        if ("BONE MARROW" %in% MITESTCDlist$HEMATOPOIETIC){
+        HM <- makeMIplot(MIresults,'HEMATOPOIETIC',"BONE MARROW",input$dose,'M',
+                         input$HMIClustY, input$HMIClustX)
+        HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',"BONE MARROW",input$dose,'F',
+                          input$HMIClustY, input$HMIClustX)
+        print(grid.arrange(HM,HM2))
+        }
+     } else {
+        if ("BONE MARROW" %in% MITESTCDlist$HEMATOPOIETIC){
+           HMB <- makeMIplot(MIresults,'HEMATOPOIETIC',"BONE MARROW",input$dose,SEX,
+                             input$HMIClustY, input$HMIClustX) 
+           print(HMB)
+        }
+     }
   },height = plotHeight$X)
   
-  output$RMIplot <- renderPlot({ #REPRODUCTIVE MI PLOT
-    if (length(SEX) == 2){
-      RM <- makeMIplot(MIresults,'REPRODUCTIVE',input$dose,'M')
-      RM2 <- makeMIplot(MIresults,'REPRODUCTIVE',input$dose,'F')
-      print(grid.arrange(RM,RM2))
-    } else {
-      RM <- makeMIplot(MIresults,'REPRODUCTIVE',input$dose,SEX)
-      print(RM)
-    }
+  output$HMIplotThymus <- renderPlot({ #HEMATOPOIETIC THYMUS MI PLOT
+     if (length(SEX) == 2){
+        if ("THYMUS" %in% MITESTCDlist$HEMATOPOIETIC){
+           HM <- makeMIplot(MIresults,'HEMATOPOIETIC',"THYMUS",input$dose,'M',
+                            input$HMIClustY, input$HMIClustX)
+           HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',"THYMUS",input$dose,'F',
+                             input$HMIClustY, input$HMIClustX)
+           print(grid.arrange(HM,HM2))
+        }
+     } else {
+        if ("THYMUS" %in%  MITESTCDlist$HEMATOPOIETIC){
+           HMT <- makeMIplot(MIresults,'HEMATOPOIETIC',"THYMUS",input$dose,SEX,
+                             input$HMIClustY, input$HMIClustX)
+           print(HMT)
+        }
+     }
   },height = plotHeight$X)
+  
+  output$EMIplot <- renderPlot({ #ENDOCRINE GLAND, ADRENAL MI PLOT
+     if (length(SEX) == 2){
+        if ("GLAND, ADRENAL" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, ADRENAL",input$dose,'M',
+                            input$EMIClustY, input$EMIClustX)
+           EM2 <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, ADRENAL",input$dose,'F',
+                             input$EMIClustY, input$EMIClustX)
+           print(grid.arrange(EM,EM2))
+        }
+     } else {
+        if ("GLAND, ADRENAL" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, ADRENAL",input$dose,SEX,
+                            input$EMIClustY, input$EMIClustX)
+           print(EM)
+        }
+     }
+  },height = plotHeight$X)
+  
+  output$EMIplot2 <- renderPlot({ #ENDOCRINE GLAND, PITUITARY MI PLOT
+     if (length(SEX) == 2){
+        if ("GLAND, PITUITARY" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PITUITARY",input$dose,'M',
+                            input$EMIClustY, input$EMIClustX)
+           EM2 <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PITUITARY",input$dose,'F',
+                             input$EMIClustY, input$EMIClustX)
+           print(grid.arrange(EM,EM2))
+        }
+     } else {
+        if ("GLAND, PITUITARY" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PITUITARY",input$dose,SEX,
+                            input$EMIClustY, input$EMIClustX)
+           print(EM)
+        }
+     }
+  },height = plotHeight$X)
+  
+  output$EMIplot3 <- renderPlot({ #ENDOCRINE  GLAND, PARATHYROID MI PLOT
+     if (length(SEX) == 2){
+        if ("GLAND, PARATHYROID" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PARATHYROID",input$dose,'M',
+                            input$EMIClustY, input$EMIClustX)
+           EM2 <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PARATHYROID",input$dose,'F',
+                             input$EMIClustY, input$EMIClustX)
+           print(grid.arrange(EM,EM2))
+        }
+     } else {
+        if ("GLAND, PARATHYROID" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, PARATHYROID",input$dose,SEX,
+                            input$EMIClustY, input$EMIClustX)
+           print(EM)
+        }
+     }
+  },height = plotHeight$X)
+  
+  output$EMIplot4 <- renderPlot({ #ENDOCRINE  GLAND, THYROID MI PLOT
+     if (length(SEX) == 2){
+        if ("GLAND, THYROID" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, THYROID",input$dose,'M',
+                            input$EMIClustY, input$EMIClustX)
+           EM2 <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, THYROID",input$dose,'F',
+                             input$EMIClustY, input$EMIClustX)
+           print(grid.arrange(EM,EM2))
+        }
+     } else {
+        if ("GLAND, THYROID" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "GLAND, THYROID",input$dose,SEX,
+                            input$EMIClustY, input$EMIClustX)
+           print(EM)
+        }
+     }
+  },height = plotHeight$X)
+  
+  output$EMIplot5 <- renderPlot({ #ENDOCRINE  PANCREAS MI PLOT
+     if (length(SEX) == 2){
+        if ("PANCREAS" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "PANCREAS",input$dose,'M',
+                            input$EMIClustY, input$EMIClustX)
+           EM2 <- makeMIplot(MIresults,'ENDOCRINE', "PANCREAS",input$dose,'F',
+                             input$EMIClustY, input$EMIClustX)
+           print(grid.arrange(EM,EM2))
+        }
+     } else {
+        if ("PANCREAS" %in%  MITESTCDlist$ENDOCRINE){
+           EM <- makeMIplot(MIresults,'ENDOCRINE', "PANCREAS",input$dose,SEX,
+                            input$EMIClustY, input$EMIClustX)
+           print(EM)
+        }
+     }
+  },height = plotHeight$X)
+ 
+  #MI Plots for Reproductive set by SEX they occur in
+  output$RMIplot <- renderPlot({ #REPRODUCTIVE GLAND, PROSTATE MI PLOT
+      if ("GLAND, PROSTATE" %in% MITESTCDlist$REPRODUCTIVE){
+         RM <- makeMIplot(MIresults,'REPRODUCTIVE',"GLAND, PROSTATE",input$dose,'M',
+                          input$RMIClustY, input$RMIClustX)
+         print(RM)   
+      }
+  },height = 350)
+  
+  output$RMIplot2 <- renderPlot({ #REPRODUCTIVE EPIDIDYMIS MI PLOT
+     if ("EPIDIDYMIS" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"EPIDIDYMIS",input$dose,'M',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot3 <- renderPlot({ #REPRODUCTIVE TESTIS MI PLOT
+     if ("TESTIS" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"TESTIS",input$dose,'M',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot4 <- renderPlot({ #REPRODUCTIVE UTERUS MI PLOT
+     if ("UTERUS" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"UTERUS",input$dose,'F',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot5 <- renderPlot({ #REPRODUCTIVE CERVIX MI PLOT
+     if ("CERVIX" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"CERVIX",input$dose,'F',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot6 <- renderPlot({ #REPRODUCTIVE GLAND, MAMMARY MI PLOT
+     if ("GLAND, MAMMARY" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"GLAND, MAMMARY",input$dose,'F',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot7 <- renderPlot({ #REPRODUCTIVE VAGINA MI PLOT
+     if ("VAGINA" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"VAGINA",input$dose,'F',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
+  
+  output$RMIplot8 <- renderPlot({ #REPRODUCTIVE OVARY MI PLOT
+     if ("OVARY" %in% MITESTCDlist$REPRODUCTIVE){
+        RM <- makeMIplot(MIresults,'REPRODUCTIVE',"OVARY",input$dose,'F',
+                         input$RMIClustY, input$RMIClustX)
+        print(RM)   
+     }
+  },height = 350)
   
   output$tree <- renderTree(TreeSelect)
   
@@ -1413,15 +1657,65 @@ server <- shinyServer(function(input, output, session) {
   })
   
   output$HMIplotreactive <- renderUI({
-    plotOutput('HMIplot', height = plotHeight$X)
+    plotOutput('HMIplotSpleen', height = plotHeight$X)
+  })
+  output$HMIplotreactive2 <- renderUI({
+     plotOutput('HMIplotBM', height = plotHeight$X)
+  })
+  output$HMIplotreactive3 <- renderUI({
+     plotOutput('HMIplotThymus', height = plotHeight$X)
   })
   
   output$EMIplotreactive <- renderUI({
     plotOutput('EMIplot', height = plotHeight$X)
   })
   
+  output$EMIplotreactive2 <- renderUI({
+     plotOutput('EMIplot2', height = plotHeight$X)
+  })
+  
+  output$EMIplotreactive3 <- renderUI({
+     plotOutput('EMIplot3', height = plotHeight$X)
+  })
+  
+  output$EMIplotreactive4 <- renderUI({
+     plotOutput('EMIplot4', height = plotHeight$X)
+  })
+  
+  output$EMIplotreactive5 <- renderUI({
+     plotOutput('EMIplot5', height = plotHeight$X)
+  })
+  
   output$RMIplotreactive <- renderUI({
     plotOutput('RMIplot', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive2 <- renderUI({
+     plotOutput('RMIplot2', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive3 <- renderUI({
+     plotOutput('RMIplot3', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive4 <- renderUI({
+     plotOutput('RMIplot4', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive5 <- renderUI({
+     plotOutput('RMIplot5', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive6 <- renderUI({
+     plotOutput('RMIplot6', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive7 <- renderUI({
+     plotOutput('RMIplot7', height = plotHeight$X)
+  })
+  
+  output$RMIplotreactive8 <- renderUI({
+     plotOutput('RMIplot8', height = plotHeight$X)
   })
   
   output$tree <- renderTree ({
