@@ -46,6 +46,8 @@ makeMIplot <- function(MIresults, OrganSystem, Organ, Dose, Gender, YCLUST, XCLU
       }
     }
     
+    
+    
 
     Heatmap <- ggplot(MIplotData) +
       geom_tile_pattern(aes(x = Finding, fill = Count, y = Treatment,
@@ -56,7 +58,9 @@ makeMIplot <- function(MIresults, OrganSystem, Organ, Dose, Gender, YCLUST, XCLU
       ylab('Study (Species): Treatment') + 
       ggtitle(paste0(Organ, " - ",Dose, " ",Gender)) + scale_y_discrete( name = 'Findings' ) + 
       xlab("Study Code and Treatment") + 
-      scale_fill_continuous(type = 'gradient', name = 'Incidence') + theme_classic() +
+      #scale_fill_continuous(type = 'gradient', name = 'Incidence')+
+      scale_fill_gradient2(low="azure2", mid = "cadetblue1", high = "navy", limits = c(0.0,1.0), name = 'Incidence')+
+      theme_classic() +
       theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
     Legend <- get_legend(Heatmap)
     Heatmap <- Heatmap + theme(legend.position = "none")
