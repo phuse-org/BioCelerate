@@ -47,17 +47,21 @@ makeRadar <- function(summaryData, organSystem, Gender) {
   #Set Colors for Radar Plot >> Currently Hardcoded for BioCelerate Order
   colors_border <- c(rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9), rgb(0.2,0.7,0.5,0.9), 
                      rgb(0.4,0.2,0.5,0.9))
+  #Set Shape for Radar >> Currently Hardcoded for BioCelerate Order
+  shapes_line <- c(1,1,2,2)
+  shapes_point <- c(16,16,17,17)
+  legend_point <- c(20,20,17,17)
   
   #Generate Radar plot
-  par(xpd= TRUE,mar = c(1,1,1,1), oma = c(2,2,2,2))
+  par(xpd= TRUE,mar = c(1,1,1,1), oma = c(1,1,1,1))
   radarplot <- radarchart(Data,
                           #Customize Background Grid
                           cglcol = "grey",cglwd = 0.8, 
                           #Customize Data Coloring
-                          plty = 1, pcol = colors_border,plwd = 4, 
+                          pty= shapes_point, plty = shapes_line, pcol = colors_border,plwd = 4, 
                           title = paste0(Title, " Radar Plot"))
-  legend(x=.75, y=1.25, legend=GroupNames, bty = "n", pch = 20, 
-         col = colors_border, text.col = "black", cex = 0.9, pt.cex = 1.6)
+  legend("topright",legend=GroupNames, bty = "n", pch = legend_point,
+         col = colors_border, text.col = "black", cex = 0.9, pt.cex = 1.6, y.intersp = 1)
   p <- recordPlot(radarplot)
   return(p)
 }
