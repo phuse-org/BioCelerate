@@ -33,6 +33,7 @@ makeOMplot <- function(OMresults, OrganSystem, OMMetric, Dose, Gender){
     br2 <- ggplot(plotDataOM2, aes(x = StudyID, y=zScore, fill = Compound)) +
       geom_bar(stat="identity") + ylab(paste0(OMMetric, " Weight zScore")) + 
       ggtitle(paste0("OM ", tissue, " ",Dose," - ",Gender)) +
+      scale_fill_manual(values=c(rgb(0.8,0.2,0.5,0.9),rgb(0.2,0.5,0.5,0.9))) +
       ylim(-4,4) + geom_rect(aes(ymin= -1, ymax=1,xmin=0,xmax=Inf), fill = "gray", alpha = .1) +
       theme_light()
     return(br2) 
@@ -47,6 +48,7 @@ makeOMplot <- function(OMresults, OrganSystem, OMMetric, Dose, Gender){
       p[[j]] <- ggplot(plotDataOM2, aes(x = StudyID, y=zScore, fill = Compound)) +
         geom_bar(stat="identity") + ylab(paste0(OMMetric, " Weight zScore")) + 
         ggtitle(paste0("OM ", tissue, " ",Dose," - ",Gender)) +
+        scale_fill_manual(values=c(rgb(0.8,0.2,0.5,0.9),rgb(0.2,0.5,0.5,0.9))) +
         ylim(-4,4) + geom_rect(aes(ymin= -1, ymax=1,xmin=0,xmax=Inf), fill = "gray", alpha = .1) +
         theme_light()
     }

@@ -15,6 +15,7 @@ makeFWplot <- function(FWData, Time, Dose, Gender){
     #FW Mixed Species Graph
     p <- ggplot(data = FWData, aes(x=FWDY, y=Diff, color = Compound, shape = Species)) +
       ggtitle(paste0("Food Consumption - ", Dose, " ", Gender))+ 
+      scale_color_manual(values=c(rgb(0.8,0.2,0.5,0.9),rgb(0.2,0.5,0.5,0.9))) +
       scale_x_continuous(breaks = round(seq(min(FWData$FWDY), max(FWData$FWDY), by = 5)))+
       geom_point() +geom_line(linetype = "dashed")+
       ylab("Percent Food Consumption Relative to Control (g/animal/day)") +xlab("Day")
@@ -30,6 +31,7 @@ makeFWplot <- function(FWData, Time, Dose, Gender){
     
     pg <- ggplot(data = FWData2, aes(x=Week, y=Diff, color = Compound, shape = Species)) +
       ggtitle(paste0("Food Consumption - ", Dose, " ", Gender))+ 
+      scale_color_manual(values=c(rgb(0.8,0.2,0.5,0.9),rgb(0.2,0.5,0.5,0.9))) +
       scale_x_continuous(breaks = round(seq(min(FWData$Week), max(FWData$Week), by = 1)))+
       geom_point() +geom_line(linetype = "dashed")+
       ylab("% Food Consumption Relative to Control (g/animal Averaged per Week)") +xlab("Week")
