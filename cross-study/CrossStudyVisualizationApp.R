@@ -277,6 +277,8 @@ ui <- dashboardPage (
                            uiOutput('ReactEndoRadar')),
                   tabPanel('Clinical Chemistry',
                            plotOutput('ESERLBplot')),
+                  tabPanel('Urinalysis',
+                           plotOutput('EURIBplot')),
                   tabPanel('Hematology',
                            plotOutput('EHEMELBPLOT')),
                   tabPanel('Organ Weights',
@@ -1338,6 +1340,17 @@ server <- shinyServer(function(input, output, session) {
     } else {
       EHEMELB <- makeLBplot(LBresults, 'ENDOCRINE','WHOLE BLOOD',input$dose,SEX)
       print(EHEMELB) 
+    }
+  })
+  
+  output$EURIBplot <- renderPlot({ #Endocrine Urinalysis LB Graph
+    if (length(SEX) ==2){
+      EURIBLB <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,'M')
+      EURILB2 <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,'F')
+      print(ggdraw(plot_grid(EURILB,EURILB2))) 
+    } else {
+      EURIBLB <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,SEX)
+      print(EURIBLB) 
     }
   })
   
