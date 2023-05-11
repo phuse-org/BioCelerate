@@ -54,9 +54,11 @@ makeRadar <- function(summaryData, organSystem, Gender) {
   
   #Generate Radar plot
   par(xpd= TRUE,mar = c(1,1,1,1), oma = c(1,1,1,1))
-  radarplot <- radarchart(Data,
+  radarplot <- radarchart(Data, axistype = 1,
                           #Customize Background Grid
-                          cglcol = "grey",cglwd = 0.8, 
+                          cglcol = "grey",cglwd = 0.8,cglty=1,
+                          #Axis Labels
+                          axislabcol="grey",vlcex=0.8,caxislabels = seq(0,3,1), seg = 3,
                           #Customize Data Coloring
                           pty= shapes_point, plty = shapes_line, pcol = colors_border,plwd = 4, 
                           title = paste0(Title, " Radar Plot"))
