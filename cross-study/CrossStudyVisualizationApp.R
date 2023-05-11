@@ -87,10 +87,7 @@ organTESTCDlist <- list('LIVER' = c('SERUM | ALT',
                                      'URINE | SPGRAV',
                                      'URINE | VOLUME',
                                      'URINE | PROT',
-                                     'URINE | UROBIL',
-                                     'WHOLE BLOOD | RBC',
-                                     'WHOLE BLOOD | HCT',
-                                     'WHOLE BLOOD | RETI'),
+                                     'URINE | UROBIL'),
                         'HEMATOPOIETIC' = c( 'WHOLE BLOOD | RBC',
                                              'WHOLE BLOOD | HCT',
                                              'WHOLE BLOOD | MCHC',
@@ -104,22 +101,13 @@ organTESTCDlist <- list('LIVER' = c('SERUM | ALT',
                                              'WHOLE BLOOD | LYM',
                                              'WHOLE BLOOD | PLAT',
                                              'WHOLE BLOOD | MPV'),
-                        'ENDOCRINE' = c('SERUM | ALB',
-                                        'SERUM | CL',
-                                        'SERUM | PHOS',
-                                        'SERUM | SODIUM',
-                                        'SERUM | GLUC',
-                                        'SERUM | CA',
-                                        'URINE | CL',
+                        'ENDOCRINE' = c('URINE | CL',
                                         'URINE | K',
                                         'URINE | SODIUM',
                                         'URINE | GLUC',
                                         'URINE | SPGRAV',
                                         'URINE | VOLUME',
-                                        'URINE | PROT',
-                                        'WHOLE BLOOD | RBC',
-                                        'WHOLE BLOOD | HCT',
-                                        'WHOLE BLOOD | RETI'),
+                                        'URINE | PROT'),
                         'REPRODUCTIVE' = c('SERUM | GNRH',
                                            'SERUM | LH',
                                            'SERUM | FSH',
@@ -135,10 +123,7 @@ organTESTCDlist <- list('LIVER' = c('SERUM | ALT',
                                            'SERUM | TSTFTSTT',
                                            'SERUM | TSTFWTST',
                                            'SERUM | TST4OH',
-                                           'SERUM | ESTROGEN',
-                                           'WHOLE BLOOD | IRON',
-                                           'WHOLE BLOOD | HGB',
-                                           'WHOLE BLOOD | RBC'))
+                                           'SERUM | ESTROGEN'))
 doseRanks <- c('Vehicle', 'LD', 'MD', 'HD')
 
 ############################## UI #############################################
@@ -220,8 +205,6 @@ ui <- dashboardPage (
                           plotOutput('KSERLBplot')),
                  tabPanel('Urinalysis',
                           plotOutput('KURILBplot')),
-                 tabPanel('Hematology',
-                          plotOutput('KHEMELBplot')),
                  tabPanel('Organ Weights',
                           plotOutput('OMplot')),
                  tabPanel('Histopathology',
@@ -277,10 +260,6 @@ ui <- dashboardPage (
                            uiOutput('ReactEndoRadar')),
                   tabPanel('Clinical Chemistry',
                            plotOutput('ESERLBplot')),
-                  tabPanel('Urinalysis',
-                           plotOutput('EURIBplot')),
-                  tabPanel('Hematology',
-                           plotOutput('EHEMELBPLOT')),
                   tabPanel('Organ Weights',
                            plotOutput('EOMplot',height = 600)),
                   tabPanel('Histopathology',
@@ -303,8 +282,6 @@ ui <- dashboardPage (
                tabsetPanel(
                   tabPanel('Overall',
                            uiOutput('ReactReproRadar')),
-                  tabPanel('Hematology',
-                           plotOutput('RHEMELBPlot')),
                   tabPanel('Organ Weights',
                            plotOutput('ROMplot',height = 600)),
                   tabPanel('Histopathology',
@@ -655,6 +632,11 @@ server <- shinyServer(function(input, output, session) {
        #Remove Not Included Tests
        organIndex <- which(LBData$LBTESTCD %in% organTESTCDlist[[organSystem]])
        LBData <- LBData[organIndex,]
+       #Check if LBData has become empty
+       if (nrow(LBData) == 0){
+         #Removes empty LBData from FINALDAYS
+         #print(paste0("No LB TESTS SELECTED in ", organSystem))
+       } else {
        #Make list of Recovery Animals
        RecoveryAnimals<-unique(subset(LBData$USUBJID, !(LBData$USUBJID %in% CompileData$USUBJID)))
        #Find Final Day for Before Recovery for Recovery Animals
@@ -681,6 +663,7 @@ server <- shinyServer(function(input, output, session) {
        }
        FinalDays <- unique(FinalDays) #Removes accidentally created duplicates in FINAL DAYS
        LBData <- LBData[FinalDays, c("USUBJID","LBSPEC","LBTESTCD","LBSTRESN")]
+       }
   
        #MI Values included in grouped systems replace MIDOMAIN and Organ for analysis
        Group <- MIDOMAIN
@@ -796,7 +779,10 @@ server <- shinyServer(function(input, output, session) {
       OMresults[[Group]][[Gender]] <-OMGraphData
 
       ###### LB GRAPHS #######################################################
-
+      
+      if (nrow(LBData) == 0){
+        #Removes empty LBData from zScore Calcuation as it cannot calcluate
+      } else {
       #Calculate Z Score per LBTESTCD
       LBData <- merge(LBData, unique(AllData[,c("USUBJID", "ARMCD","StudyID","SEX")]), by = "USUBJID")
       #Recode Arms for LBData
@@ -843,13 +829,14 @@ server <- shinyServer(function(input, output, session) {
           }
         }
       }
-      #Remove Reovery Animals from LBData
+      #Remove Recovery Animals from LBData
       LBData2 <- LBData[which(LBData$USUBJID %in% CompileData$USUBJID),]
       if (length(LBData2$LBTESTCD) == 0){
-
+        
       } else{
         CompileData <- merge(CompileData, LBData2[,c("USUBJID","zscore","LBTESTCD")], by = "USUBJID")
         CompileData <- dcast(CompileData, USUBJID+StudyID+Species+SEX+ARMCD+OMSPEC+BrainRatiozScore+BWSTRESN+BWzScore~LBTESTCD, value.var = "zscore", fun.aggregate = mean)
+      }
       }
 
       #Save Respective LBData per OrganSystem and Gender
@@ -975,21 +962,27 @@ server <- shinyServer(function(input, output, session) {
 
       #Score LB Data
       colIndex <- which(colnames(CompileData) %in% organTESTCDlist[[organSystem]])
-      for (i in colIndex) {
-        colName <- colnames(CompileData)[i]
-        ScoredData[[colName]] <- NA
-        for (Study in unique(ScoredData$StudyID)){
-          j <- which(CompileData$StudyID == Study)
-          StudyData <- CompileData[which(CompileData$StudyID == Study),]
-
-          x <- ifelse(StudyData[,i]>3 | StudyData[,i]<(-3),3,
-                      ifelse(StudyData[,i]>2 | StudyData[,i]<(-2),2,
-                             ifelse((StudyData[,i]> 1 | StudyData[,i]< (-1)),1,0)))
-          ScoredData[j,colName] <-x
-          # colnames(ScoredData)[i] <- colnames(CompileData)[i+1]
+      if (identical(integer(0),colIndex) == TRUE){
+        ScoredData$OMSPEC <- CompileData$OMSPEC
+        #Removes Scoring if there are no LB Tests
+        colIndex <- which(colnames(CompileData) == "BWRatiozScore")
+        print(paste0("No LB TESTS SELECTED in ", organSystem))
+      } else {
+        for (i in colIndex) {
+          colName <- colnames(CompileData)[i]
+          ScoredData[[colName]] <- NA
+          for (Study in unique(ScoredData$StudyID)){
+            j <- which(CompileData$StudyID == Study)
+            StudyData <- CompileData[which(CompileData$StudyID == Study),]
+            
+            x <- ifelse(StudyData[,i]>3 | StudyData[,i]<(-3),3,
+                        ifelse(StudyData[,i]>2 | StudyData[,i]<(-2),2,
+                               ifelse((StudyData[,i]> 1 | StudyData[,i]< (-1)),1,0)))
+            ScoredData[j,colName] <-x
+            # colnames(ScoredData)[i] <- colnames(CompileData)[i+1]
+          }
         }
       }
-
       IncidenceOverideCount <- 0
       #Score MI Data
       colIndex <- seq((colIndex[length(colIndex)]+1), ncol(CompileData))
@@ -1109,6 +1102,9 @@ server <- shinyServer(function(input, output, session) {
               }
             } else if (organEndPoint == 'Histopathology') {
               preMIindex <- grep('|', colnames(ScoredDataTmp), fixed = T)
+              if (nrow(LBData) == 0) {
+                preMIindex <- which(colnames(ScoredDataTmp) == "OMSPEC") #account for loss of LB Variables
+              }
               ScoredDataTmp2 <- ScoredDataTmp[which(ScoredDataTmp$OMSPEC %in% MITESTCDlist[[organSystem]]),]
               MIindex <- seq((max(preMIindex)+1), ncol(ScoredDataTmp))
               if (aggregationMethod == 'mean') {
@@ -1140,7 +1136,7 @@ server <- shinyServer(function(input, output, session) {
         }
       }
       #Clear for Reset
-      CompileData <- CompileData[,-which(names(CompileData) %in% c("OMSPEC","OMSTRESN"))]
+      CompileData <- CompileData[,c("USUBJID","StudyID", "Species", "SEX", "ARMCD", "BrainRatiozScore", "BWSTRESN", "BWzScore")]
     } 
     Results <- as.data.frame(summaryResults)
       rownames(Results) <- c(paste0("Dog 6576 ", Gender), paste0("Dog 5492 ", Gender),
@@ -1155,12 +1151,13 @@ server <- shinyServer(function(input, output, session) {
     summaryData[,organSystem] <- Tmp
   }
   summaryData <- t(summaryData)
-  #Rename 'BW' as 'Body Weight' and add 'LB' to single LB source names
+  #Rename 'BW' as 'Body Weight' and add 'LB' to single LB source names to include LB
   rownames(summaryData)[which(rownames(summaryData) =="BW")] <- "BODY WEIGHT"
   rownames(summaryData)[which(rownames(summaryData) =="LIVER.SERUM")] <- "LIVER.LB.SERUM"
+  rownames(summaryData)[which(rownames(summaryData) =="ENDOCRINE.SERUM")] <- "ENDOCRINE.LB.SERUM"
   rownames(summaryData)[which(rownames(summaryData) =="HEMATOPOIETIC.WHOLE.BLOOD")] <- "HEMATOPOIETIC.LB.WHOLE.BLOOD"
-  rownames(summaryData)[which(rownames(summaryData) =="REPRODUCTIVE.WHOLE.BLOOD")] <- "REPRODUCTIVE.LB.WHOLE.BLOOD"
-   #Edit Data to Account for chosen studies
+
+  #Edit Data to Account for chosen studies
   #Summary Data
   colschosen <- which(word(colnames(summaryData),1,2) %in% chosenstudies)
   summaryData <- summaryData[,colschosen]
@@ -1288,16 +1285,6 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   
-  output$KHEMELBplot <- renderPlot({ #Kidney Hematology LB Graph
-    if (length(SEX) ==2){
-      KHEMELB <- makeLBplot(LBresults, 'KIDNEY','WHOLE BLOOD',input$dose,'M')
-      KHEMELB2 <- makeLBplot(LBresults, 'KIDNEY','WHOLE BLOOD',input$dose,'F')
-      print(ggdraw(plot_grid(KHEMELB,KHEMELB2))) 
-    } else {
-      KHEMELB <- makeLBplot(LBresults, 'KIDNEY','WHOLE BLOOD',input$dose,SEX)
-      print(KHEMELB) 
-    }
-  })
   
   output$LSERLBplot <- renderPlot({ #Liver Clinical Chemistry LB Graph
     if (length(SEX) ==2){
@@ -1331,39 +1318,7 @@ server <- shinyServer(function(input, output, session) {
       print(ESERLB) 
     }
   })
-  
-  output$EHEMELBPLOT <- renderPlot({ #Endocrine Hematology LB Graph
-    if (length(SEX) ==2){
-      EHEMELB <- makeLBplot(LBresults, 'ENDOCRINE','WHOLE BLOOD',input$dose,'M')
-      EHEMELB2 <- makeLBplot(LBresults, 'ENDOCRINE','WHOLE BLOOD',input$dose,'F')
-      print(ggdraw(plot_grid(EHEMELB,EHEMELB2))) 
-    } else {
-      EHEMELB <- makeLBplot(LBresults, 'ENDOCRINE','WHOLE BLOOD',input$dose,SEX)
-      print(EHEMELB) 
-    }
-  })
-  
-  output$EURIBplot <- renderPlot({ #Endocrine Urinalysis LB Graph
-    if (length(SEX) ==2){
-      EURIBLB <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,'M')
-      EURILB2 <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,'F')
-      print(ggdraw(plot_grid(EURILB,EURILB2))) 
-    } else {
-      EURIBLB <- makeLBplot(LBresults, 'ENDOCRINE','URINE',input$dose,SEX)
-      print(EURIBLB) 
-    }
-  })
-  
-  output$RHEMELBPlot<- renderPlot({ #Reproductive Hematology LB Graph
-    if (length(SEX) ==2){
-      RLB <- makeLBplot(LBresults, 'REPRODUCTIVE','WHOLE BLOOD',input$dose,'M')
-      RLB2 <- makeLBplot(LBresults, 'REPRODUCTIVE','WHOLE BLOOD',input$dose,'F')
-      print(ggdraw(plot_grid(RLB,RLB2))) 
-    } else{
-      RLB <- makeLBplot(LBresults, 'REPRODUCTIVE','WHOLE BLOOD',input$dose,SEX)
-      print(RLB)
-    }
-  })
+
   
   ##Radar Plots ##
      for (i in 1:length(SEX)) { #Overall Summary Radar
@@ -1741,9 +1696,6 @@ server <- shinyServer(function(input, output, session) {
                                                                                 'SERUM | K' = 'SERUM | K',
                                                                                 'SERUM | PHOS' = 'SERUM | PHOS',
                                                                                 'SERUM | SODIUM' = 'SERUM | SODIUM'), stselected = TRUE),
-                                          'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                        'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
-                                                                        'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
                                           'Urinanlysis' = structure(list('URINE | K'='URINE | K',
                                                                          'URINE | SODIUM' = 'URINE | SODIUM',
                                                                          'URINE | GLUC' = 'URINE | GLUC',
@@ -1788,22 +1740,12 @@ server <- shinyServer(function(input, output, session) {
                                                'THYMUS' = 'THYMUS'), stselected = TRUE)
         ),
         'Endocrine' = list(
-           'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALB'= 'SERUM | ALB',
-                                                                                'SERUM | CL' = 'SERUM | CL',
-                                                                                'SERUM | PHOS' = 'SERUM | PHOS',
-                                                                                'SERUM | SODIUM' = 'SERUM | SODIUM',
-                                                                                'SERUM | GLUC' = 'SERUM | GLUC',
-                                                                                'SERUM | CA' = 'SERUM | CA'), stselected = TRUE),
-                                          'Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                        'WHOLE BLOOD | HCT' = 'WHOLE BLOOD | HCT',
-                                                                        'WHOLE BLOOD | RETI' = 'WHOLE BLOOD | RETI'),stselected = TRUE),
-                                          'Urinanlysis' = structure(list('URINE | CL' = 'URINE | CL',
-                                                                         'URINE | K'='URINE | K',
-                                                                         'URINE | SODIUM'='URINE | SODIUM',
-                                                                         'URINE | GLUC' = 'URINE | GLUC',
-                                                                         'URINE | SPGRAV' = 'URINE | SPGRAV',
-                                                                         'URINE | VOLUME' = 'URINE | VOLUME',
-                                                                         'URINE | PROT' = 'URINE | PROT'),stselected = TRUE)),
+           # 'Laboratory Values(LB)' = list("Clinical Chemistry" = structure(list('SERUM | ALB'= 'SERUM | ALB',
+           #                                                                      'SERUM | CL' = 'SERUM | CL',
+           #                                                                      'SERUM | PHOS' = 'SERUM | PHOS',
+           #                                                                      'SERUM | SODIUM' = 'SERUM | SODIUM',
+           #                                                                      'SERUM | GLUC' = 'SERUM | GLUC',
+           #                                                                      'SERUM | CA' = 'SERUM | CA'), stselected = TRUE)),
            'Histopathology(MI)' = structure(list('GLAND, THYROID' = 'GLAND, THYROID',
                                                  'GLAND, ADRENAL' = 'GLAND, ADRENAL',
                                                  'GLAND, PITUITARY'='GLAND, PITUITARY',
@@ -1816,8 +1758,9 @@ server <- shinyServer(function(input, output, session) {
                                                'PANCREAS'='PANCREAS'), stselected = TRUE)
         ),
         'Reproductive' = list(
-           'Laboratory Values(LB)' = list('Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
-                                                                        'WHOLE BLOOD | HGB' = 'WHOLE BLOOD | HGB'),stselected = TRUE)),
+           #Remove LB Values
+           # 'Laboratory Values(LB)' = list('Hematology' = structure(list('WHOLE BLOOD | RBC'='WHOLE BLOOD | RBC',
+           #                                                              'WHOLE BLOOD | HGB' = 'WHOLE BLOOD | HGB'),stselected = TRUE)),
            'Histopathology(MI)' = structure(list('GLAND, PROSTATE' = structure('GLAND, PROSTATE',stselected = TRUE),
                                                  'EPIDIDYMIS' = structure('EPIDIDYMIS',stselected = TRUE),
                                                  'TESTIS' = structure('TESTIS',stselected = TRUE),
