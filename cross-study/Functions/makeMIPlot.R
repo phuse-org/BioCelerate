@@ -56,8 +56,8 @@ makeMIplot <- function(MIresults, OrganSystem, Organ, Dose, Gender, YCLUST, XCLU
       scale_pattern_density_manual(values = c("0" = 0, "1" = 0.1, "2" = 0.2, "3"=0.3, "4" = 0.4, "5"= 0.5))+
       scale_pattern_fill_brewer(palette = 3)+ 
       ylab('Study (Species): Treatment') + 
-      ggtitle(paste0(Organ, " - ",Dose, " ",Gender)) + scale_y_discrete( name = 'Findings' ) + 
-      xlab("Study Code and Treatment") + 
+      ggtitle(paste0(Organ, " - ",Dose, " ",Gender)) + scale_y_discrete( name = 'Study (Species): Treatment' ) + 
+      xlab("Findings") + 
       #scale_fill_continuous(type = 'gradient', name = 'Incidence')+
       scale_fill_gradient2(low="azure2", mid = "cadetblue1", high = "navy", limits = c(0.0,1.0), name = 'Incidence')+
       theme_classic() +
