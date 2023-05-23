@@ -61,7 +61,7 @@ source('Functions/makeFWPlot.R')
 #Standardizing Terminology
 MITESTCDlist <- list('LIVER' = c('LIVER'),
                      'KIDNEY' = c('KIDNEY'),
-                     'HEMATOPOIETIC' = c('BONE MARROW', 'SPLEEN', 'THYMUS'),
+                     'HEMATOPOIETIC' = c('BONE MARROW', 'SPLEEN', 'THYMUS', 'LYMPH NODE, MESENTERIC', 'LYMPH NODE, MANDIBULAR'),
                      'ENDOCRINE' = c('GLAND, THYROID', 'GLAND, ADRENAL', 'GLAND, PITUITARY',
                                                         'GLAND, PARATHYROID', 'PANCREAS'),
                      'REPRODUCTIVE' = c('CERVIX','EPIDIDYMIS','GLAND, PROSTATE','GLAND, MAMMARY',
@@ -252,6 +252,9 @@ ui <- dashboardPage (
                           column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
                                                uiOutput('HMIplotreactive'), 
                                    uiOutput('HMIplotreactive2')))),
+                          column(width=10,fluidRow(splitLayout(cellWidths = c("50%","50%"),
+                                                               uiOutput('HMIplotreactive4'), 
+                                                               uiOutput('HMIplotreactive5')))),
                           column(width=10,fluidRow(uiOutput('HMIplotreactive3'))))
                )),
       tabPanel('Endocrine',
@@ -1436,6 +1439,41 @@ server <- shinyServer(function(input, output, session) {
      }
   },height = plotHeight$X)
   
+  output$HMIplotLympMand <- renderPlot({ #HEMATOPOIETIC LYMPH NODE, MANDIBULAR MI PLOT
+    if (length(SEX) == 2){
+      if ("LYMPH NODE, MANDIBULAR" %in% MITESTCDlist$HEMATOPOIETIC){
+        HM <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MANDIBULAR",input$dose,'M',
+                         input$HMIClustY, input$HMIClustX)
+        HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MANDIBULAR",input$dose,'F',
+                          input$HMIClustY, input$HMIClustX)
+        print(grid.arrange(HM,HM2))
+      }
+    } else {
+      if ("LYMPH NODE, MANDIBULAR" %in%  MITESTCDlist$HEMATOPOIETIC){
+        HMT <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MANDIBULAR",input$dose,SEX,
+                          input$HMIClustY, input$HMIClustX)
+        print(HMT)
+      }
+    }
+  },height = plotHeight$X)
+  output$HMIplotLympMESEN <- renderPlot({ #HEMATOPOIETIC LYMPH NODE, MESENTERIC MI PLOT
+    if (length(SEX) == 2){
+      if ("LYMPH NODE, MESENTERIC" %in% MITESTCDlist$HEMATOPOIETIC){
+        HM <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MESENTERIC",input$dose,'M',
+                         input$HMIClustY, input$HMIClustX)
+        HM2 <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MESENTERIC",input$dose,'F',
+                          input$HMIClustY, input$HMIClustX)
+        print(grid.arrange(HM,HM2))
+      }
+    } else {
+      if ("LYMPH NODE, MESENTERIC" %in%  MITESTCDlist$HEMATOPOIETIC){
+        HMT <- makeMIplot(MIresults,'HEMATOPOIETIC',"LYMPH NODE, MESENTERIC",input$dose,SEX,
+                          input$HMIClustY, input$HMIClustX)
+        print(HMT)
+      }
+    }
+  },height = plotHeight$X)
+  
   output$EMIplot <- renderPlot({ #ENDOCRINE GLAND, ADRENAL MI PLOT
      if (length(SEX) == 2){
         if ("GLAND, ADRENAL" %in%  MITESTCDlist$ENDOCRINE){
@@ -1633,6 +1671,12 @@ server <- shinyServer(function(input, output, session) {
   output$HMIplotreactive3 <- renderUI({
      plotOutput('HMIplotThymus', height = plotHeight$X)
   })
+  output$HMIplotreactive4<- renderUI({
+    plotOutput('HMIplotLympMand', height = plotHeight$X)
+  })
+  output$HMIplotreactive5<- renderUI({
+    plotOutput('HMIplotLympMESEN', height = plotHeight$X)
+  })
   
   output$EMIplotreactive <- renderUI({
     plotOutput('EMIplot', height = plotHeight$X)
@@ -1735,7 +1779,9 @@ server <- shinyServer(function(input, output, session) {
                                                                         'WHOLE BLOOD | MPV' = 'WHOLE BLOOD | MPV'), stselected = TRUE)),
            'Histopathology(MI)' = structure(list('BONE MARROW' = "BONE MARROW",
                                                  'SPLEEN' = 'SPLEEN',
-                                                 'THYMUS' = 'THYMUS'), stselected = TRUE),
+                                                 'THYMUS' = 'THYMUS',
+                                                 "LYMPH NODE, MANDIBULAR" = "LYMPH NODE, MANDIBULAR",
+                                                 "LYMPH NODE, MESENTERIC" = "LYMPH NODE, MESENTERIC"), stselected = TRUE),
            'Organ Weight(OM)' = structure(list('SPLEEN' = 'SPLEEN',
                                                'THYMUS' = 'THYMUS'), stselected = TRUE)
         ),
