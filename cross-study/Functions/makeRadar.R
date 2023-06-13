@@ -43,10 +43,13 @@ makeRadar <- function(summaryData, organSystem, Gender) {
   
   #Create Group Names
   GroupNames <-str_replace(rownames(Data)[3:nrow(Data)],"\\.", " ")
-  
+  #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+  GroupNames <-str_replace(GroupNames, "6576", "Compound A")
+  GroupNames <-str_replace(GroupNames, "5492", "Compound B")
+  GroupNames <-str_replace(GroupNames, "\\.", " (")
+  GroupNames <-paste0(GroupNames,")")
   #Set Colors for Radar Plot >> Currently Hardcoded for BioCelerate Order
-  colors_border <- c(rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9), rgb(0.2,0.5,0.5,0.9), 
-                     rgb(0.8,0.2,0.5,0.9))
+  colors_border <- c(rgb(0.8,0.2,0.5,0.9), rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9), rgb(0.2,0.5,0.5,0.9))
   #Set Shape for Radar >> Currently Hardcoded for BioCelerate Order
   shapes_line <- c(1,1,2,2)
   shapes_point <- c(16,16,17,17)

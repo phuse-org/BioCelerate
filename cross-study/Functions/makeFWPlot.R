@@ -11,6 +11,11 @@ makeFWplot <- function(FWData, Time, Dose, Gender){
   #FW Plots
   FWData <- FWData[which(FWData$ARMCD %in% Dose),]
   FWData <- FWData[complete.cases(FWData),]
+  
+  #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+  FWData$Compound <-str_replace(FWData$Compound, "6576", "Compound A")
+  FWData$Compound <-str_replace(FWData$Compound, "5492", "Compound B")
+  
   if (Time == 'Day'){
     #FW Mixed Species Graph
     p <- ggplot(data = FWData, aes(x=FWDY, y=Diff, color = Compound, shape = Species)) +

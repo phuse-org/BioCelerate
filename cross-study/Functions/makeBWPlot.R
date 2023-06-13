@@ -80,6 +80,12 @@ makeBWplot <- function(BodyWeight,BWMethod, BWMetric, Dose, Gender){
       BWplotData <- BWplotData[-which(BWplotData$USUBJID %in% c("87497-4001", "87497-4002", "87497-4003")),] #manually excluding some animals 
     }
   }
+  
+  #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+  BWplotData$Compound <-str_replace(BWplotData$Compound, "6576", "Compound A")
+  BWplotData$Compound <-str_replace(BWplotData$Compound, "5492", "Compound B")
+  
+  
   if (BWMethod == "BW"){
     if (BWMetric == 'zScore') {
       BWplotData <- aggregate(zScoreModel ~ VISITDY+ Species + ARMCD+Compound, FUN = mean, data = BWplotData)

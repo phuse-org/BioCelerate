@@ -41,6 +41,10 @@ makeLBplot <- function(LBresults, OrganSystem, sources, Dose, Gender){
   meanData <- aggregate(zscore ~ LBTESTCD, FUN = mean, LBplotData)
   meanData <- meanData[order(as.vector(meanData$zscore), decreasing = F),]
   LBplotData$LBTESTCD <- factor(LBplotData$LBTESTCD, levels = meanData$LBTESTCD)
+  
+  #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+  LBplotData$Compound <-str_replace(LBplotData$Compound, "6576", "Compound A")
+  LBplotData$Compound <-str_replace(LBplotData$Compound, "5492", "Compound B")
 
   qr <- ggplot(LBplotData,aes(x = zscore, y = LBTESTCD, group = LBTESTCD, color = Compound, shape = Species)) +
     geom_rect(aes(ymin= -Inf, ymax=Inf,xmin=-1,xmax=1), color = 'gray', fill = "gray", alpha = .05) +

@@ -46,7 +46,9 @@ makeMIplot <- function(MIresults, OrganSystem, Organ, Dose, Gender, YCLUST, XCLU
       }
     }
     
-    
+    #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+    MIplotData$Treatment <-str_replace(MIplotData$Treatment, "6576", "(Compound A)")
+    MIplotData$Treatment <-str_replace(MIplotData$Treatment, "5492", "(Compound B)")
     
 
     Heatmap <- ggplot(MIplotData) +

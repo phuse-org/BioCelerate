@@ -14,6 +14,13 @@ makeOMplot <- function(OMresults, OrganSystem, OMMetric, Dose, Gender){
   OMGraphData <- OMresults[[OrganSystem]][[Gender]]
   OMGraphData <- OMGraphData[which(OMGraphData$ARMCD == Dose),]
   
+  #Replace Anonymized Compounds w/ 'Compound A' and 'Compound B' for paper
+  OMGraphData$Compound <-str_replace(OMGraphData$Compound, "6576", "Compound A")
+  OMGraphData$Compound <-str_replace(OMGraphData$Compound, "5492", "Compound B")
+  OMGraphData$StudyID <-str_replace(OMGraphData$StudyID, "6576", "Compound A")
+  OMGraphData$StudyID <-str_replace(OMGraphData$StudyID, "5492", "Compound B")
+  
+  
   #Filter to Chosen Metric
   if (OMMetric == "BrainRatio"){
     plotDataOM <- aggregate(BrainRatiozScore ~ StudyID + Compound + Species + OMSPEC + ARMCD, FUN = mean, data = OMGraphData) 
