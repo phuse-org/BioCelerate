@@ -9,6 +9,8 @@
 library(cowplot)
 library(dplyr)
 library(devtools)
+library(fmsb)
+library(farver)
 library(forcats)
 library(gridExtra)
 library(gridGraphics)
@@ -29,6 +31,7 @@ library(scales)
 library(tidyverse)
 library(tools)
 library(this.path)
+library(textshaping)
 
 
 #Set File Path to Biocelerate Data
@@ -367,7 +370,7 @@ server <- shinyServer(function(input, output, session) {
             OMTESTCDlist[[organSystem]] <- as.character(OMTESTS)
          }
          #Specific Error Catch for BioCelerate Studies
-         if (length(MITESTCDlist$HEMATOPOIETIC) == 1 & MITESTCDlist$HEMATOPOIETIC == "BONE MARROW"){
+         if (length(MITESTCDlist$HEMATOPOIETIC) == 1 & any(MITESTCDlist$HEMATOPOIETIC == "BONE MARROW")){
             showNotification("Dog 5492 Does not Have Bone Marrow MI. Need to add another MI Selection to HEMATOPOIETIC", type = "error")
             return(NULL)
             stop()
