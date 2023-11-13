@@ -264,8 +264,8 @@ ui <- dashboardPage (
                tabsetPanel(
                   tabPanel('Overall',
                            uiOutput('ReactEndoRadar')),
-                  tabPanel('Clinical Chemistry',
-                           plotOutput('ESERLBplot')),
+                  #tabPanel('Clinical Chemistry',   #Removing this tab until we put clinical chemistry in Endocrine
+                  #         plotOutput('ESERLBplot')),
                   tabPanel('Organ Weights',
                            plotOutput('EOMplot',height = 600)),
                   tabPanel('Histopathology',
