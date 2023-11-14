@@ -32,6 +32,8 @@ library(tidyverse)
 library(tools)
 library(this.path)
 library(textshaping)
+library(units)
+library(classInt)
 
 
 #Set File Path to Biocelerate Data
