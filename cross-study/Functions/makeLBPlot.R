@@ -14,6 +14,7 @@ makeLBplot <- function(LBresults, OrganSystem, sources, Dose, Gender){
   
   #Limit to Desired OrganSystem and Gender
   LBData <- LBresults[[OrganSystem]][[Gender]]
+  LBData <- LBData[which(LBData$SEX == Gender),] #Ensure Gender is correct
   #Convert Source to Test Group
   if (sources == 'WHOLE BLOOD'){
     testgroup <- "Hematology"
